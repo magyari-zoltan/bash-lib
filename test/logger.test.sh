@@ -48,8 +48,7 @@ INFO   - This is an INFO message.
 WARNIN - This is a WARNING message.
 ERROR  - This is an ERROR message."
 
-EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one:" 
-[[ $? -ne 0 ]] && echo "$output"
+EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one" 
 
 ENDTEST
 
@@ -101,8 +100,7 @@ LOGFILTER=\"ERROR\"
 $underline
 ERROR  - This is an ERROR message."
 
-EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one:" 
-[[ $? -ne 0 ]] && echo "$output"
+EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one"
 
 ENDTEST
 
@@ -131,8 +129,7 @@ output=$(echo "$output" | sed -E 's/^[0-9-]{10} [0-9:]{8} - //')
 
 expected=""
 
-EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one:" 
-[[ $? -ne 0 ]] && echo "$output"
+EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one"
 
 ENDTEST
 
@@ -162,8 +159,7 @@ INFO   - This is an INFO message.
 WARNIN - This is a WARNING message.
 ERROR  - This is an ERROR message."
 
-EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one:" 
-[[ $? -ne 0 ]] && echo "$output"
+EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one" 
 
 ENDTEST "$LOGFILE"
 

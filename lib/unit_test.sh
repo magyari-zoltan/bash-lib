@@ -159,12 +159,13 @@ function EXPECT() {
 
 # Compares the first two arguments, if not equal then prints an error message 
 function EXPECT_TO_BE_EQUAL() {
-	expected="$1"
-	actual="$2"
-	message="$3"
+	local expected="$1"
+	local actual="$2"
+	local message="$3"
 
-	if [[ "$expected" != "$actual" ]] then
-		unit_test_log --only-stdout "ERROR: $message"
+	if [[ "$expected" != "$actual" ]]; then
+		unit_test_log --only-stdout "ERROR: $message
+$actual"
 		return 1
 	fi
 
