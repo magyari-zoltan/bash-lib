@@ -86,6 +86,8 @@ function unit_test_log_outputs() {
 				unit_test_log --only-logfile ""
 				unit_test_log --only-logfile "$log_output"
 			fi
+
+            [[ -f "$log_file" ]] && rm "$log_file"
 		done
 	fi
 
@@ -119,6 +121,14 @@ function copy_stdout_to() {
 function copy_stderr_to() {
 	local -n stderr=$1
 	stderr=$(< "$UNIT_TEST_SCRIPT_STDERR")
+}
+
+# Copies the content of a given file passed in as the first argument
+# into the second argument
+function copy_from_to() {
+    local srcFile=$1
+	local -n target=$2
+	target=$(< "$srcFile")
 }
 
 
