@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------------------
-# Debug helper library
+# Bash script debug helper.
 #
 # This file provides small helper functions for controlling shell trace mode 
 # `set -x` in Bash scripts. When trace mode is enabled, Bash prints each command 

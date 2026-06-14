@@ -41,7 +41,7 @@ expected="Hello World!
 Whats up!"
 copy_stdout_to output
 
-EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one" 
+EXPECT_TO_BE_EQUAL "$expected" "$output" "On the standart output is expected to be '$expected'." 
 
 ENDTEST
 
@@ -62,7 +62,7 @@ RUN disable_debug_entierly
 expected="Debug is globally disabled"
 copy_stdout_to output
 
-EXPECT_TO_BE_EQUAL "$expected" "$output" "The output is not the expected one" 
+EXPECT_TO_BE_EQUAL "$expected" "$output" "On the standart output is expected to be '$expected'."
 
 ENDTEST
 

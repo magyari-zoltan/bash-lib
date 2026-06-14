@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------------------
-# Library
+# Error handling helper module for Bash scripts.
 #
-# Shared Bash error handling helpers for enabling strict mode and printing
+# Shared Bash error handling helper module for enabling strict mode and printing
 # contextual diagnostics with a stack trace when a command fails.
 # ------------------------------------------------------------------------------
 

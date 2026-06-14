@@ -1,11 +1,31 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------------------
-# Library
+# Mini unit test framework for Bash scripts.
 #
 # Minimal shell unit test helpers for describing test cases, checking
 # expectations, capturing script output into log files, and cleaning up
 # temporary test artifacts.
+#
+# Example usage:
+# --------------
+#
+# DESCRIBE "One sentence to describe the test use case."
+#
+# RUN echo "some command to be tested" 
+# copy_stdout_to output
+#
+# expected="some command to be tested"
+# EXPEC_TO_BE_EQUAL "$expected" "$output" "Message in case of failed expectations."
+#
+# ENDTEST
+#
+# ------------------------------------------------------------------------------
+#
+# The unit test logs onto the 'test_execution.log' the standard outputs, the 
+# error outputs of the executed command, the command itself and can be 
+# customized to log other things too.
+#
 # ------------------------------------------------------------------------------
 
 # Prevent multiple sourcing
@@ -94,6 +114,13 @@ function unit_test_log_outputs() {
 	return 0
 }
 
+# Logs into the UNIT_TEST_EXECUTION_LOG the type and the content of a variable.
+function log_variable() {
+    local type=$(declare -p "$1" 2>/dev/null)
+    type=$(echo "$type" | sed -E 's/^declare -[aA-]{1} //')
+    unit_test_log --only-logfile "$type"
+}
+
 # ------------------------------------------------------------------------------
 # Public API: Functions intended for external use
 # ------------------------------------------------------------------------------
@@ -165,7 +192,7 @@ function EXPECT_TO_BE_EQUAL() {
 
 	if [[ "$expected" != "$actual" ]]; then
 		unit_test_log --only-stdout "ERROR: $message
-$actual"
+ACTUAL: '$actual'"
 		return 1
 	fi
 
@@ -180,11 +207,24 @@ function FAIL() {
 
 # Runs a script and redirects standard outputs into separate log files.
 function RUN() {
-	script="$1"; shift
+	local script="$1"; shift
+	local args=""
+	local arg
+	local escaped_arg
 
-	args="$@"
+	for arg in "$@"; do
+        # If the argument contains a space
+		if [[ "$arg" == *" "* ]]; then
+			arg="${arg//\\/\\\\}" # 'C:\tmp\file' -> 'C:\\tmp\\file'
+			arg="${arg//\"/\\\"}" # 'one "two"'   -> 'one \"two\"'
+			args+=" \"$arg\""     # 'one'+=' two' -> 'one two'
+		else
+			args+=" $arg"          # 'one'+=' two' -> 'one two'
+		fi
+	done
+
 	unit_test_log --only-logfile ""
-	unit_test_log --only-logfile ">_ $script $args"
+	unit_test_log --only-logfile ">_ $script$args"
 
 	"$script" "$@" > "$UNIT_TEST_SCRIPT_STDOUT" 2> "$UNIT_TEST_SCRIPT_STDERR"
 	retval=$?

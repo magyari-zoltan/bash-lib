@@ -1,15 +1,21 @@
 #!/bin/bash
 
 # ------------------------------------------------------------------------------
-# Logging helper library
+# Bash script logging helper.
 #
 # This file provides simple helper functions for writing timestamped log
 # messages either to standard output or to a configured log file.
 #
 # The logger behavior is controlled by these runtime variables:
-# LOGGING  - enables or disables logging entirely
-# LOGFILE  - when set, log messages are appended to this file
-# LOGLEVEL - limits specialized logging behavior such as error output
+#
+# LOGGING  - Enables or disables logging entirely
+#
+# LOGFILE  - When set, log messages are appended to this file
+#
+# LOGLEVEL - Limits specialized logging behavior such as error output.
+#            Allowed values: DEBUG | NORMAL | INFO | WARNING | ERROR
+#
+#            Default: LOGFILTER="NORMAL | WARNNING | ERROR"
 # ------------------------------------------------------------------------------
 
 # Prevent multiple sourcing

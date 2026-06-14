@@ -9,3 +9,4 @@ readonly TEST="$CURRENT_SCRIPT_PATH"
 # Import test files
 source "$TEST/debug.test.sh"
 source "$TEST/logger.test.sh"
+source "$TEST/stack.test.sh"
