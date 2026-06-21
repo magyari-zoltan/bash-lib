@@ -68,14 +68,23 @@ function parse_yaml() {
                     end
                 );
 
-            (    
-                paths(scalars) as $p |
-                [($p | path_to_key), getpath($p) | tostring] | @tsv
+            paths as $p |
+            (
+                [($p | path_to_key) + ":type", (getpath($p) | type)] | @tsv
             ),
             (
-                paths as $p |
-                select(getpath($p) | type == "array") |
-                [($p | path_to_key) + ".length", (getpath($p) | length | tostring)] | @tsv
+                if (getpath($p) | type) == "array" then
+                    [($p | path_to_key) + ":length", (getpath($p) | length | tostring)] | @tsv
+                else
+                    empty
+                end
+            ),
+            (
+                if ((getpath($p) | type) != "array" and (getpath($p) | type) != "object") then
+                    [($p | path_to_key), (getpath($p) | tostring)] | @tsv
+                else
+                    empty
+                end
             )
         ' "$input_file"
     )

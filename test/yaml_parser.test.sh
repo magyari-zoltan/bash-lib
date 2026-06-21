@@ -133,37 +133,110 @@ ret_val=$?
 expected=0
 EXPECT_TO_BE_EQUAL "$expected" "$ret_val" "The method did not return: $expected."
 
-expected=27
+expected=60
 actual=${#disks_map[@]}
 EXPECT_TO_BE_EQUAL "$expected" "$actual" "The parsed associative array does not contain the expected number of entries."
 
-EXPECT_TO_BE_EQUAL "1" "${disks_map['disks.length']}" "The parsed disks length is incorrect."
+# Disks array
+EXPECT_TO_BE_EQUAL "1" "${disks_map['disks:length']}" "The parsed disks length is incorrect."
+EXPECT_TO_BE_EQUAL "array" "${disks_map['disks:type']}" "The parsed disks node type is incorrect."
+
+# Disk[0] object
+EXPECT_TO_BE_EQUAL "object" "${disks_map['disks[0]:type']}" "The parsed disk entry type is incorrect."
+
 EXPECT_TO_BE_EQUAL "/dev/sda" "${disks_map['disks[0].device']}" "The parsed device value is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].device:type']}" "The parsed device node type is incorrect."
+
 EXPECT_TO_BE_EQUAL "gpt" "${disks_map['disks[0].table']}" "The parsed table value is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].table:type']}" "The parsed table node type is incorrect."
+
 EXPECT_TO_BE_EQUAL "true" "${disks_map['disks[0].wipe']}" "The parsed wipe value is incorrect."
-EXPECT_TO_BE_EQUAL "3" "${disks_map['disks[0].partitions.length']}" "The parsed partitions length is incorrect."
+EXPECT_TO_BE_EQUAL "boolean" "${disks_map['disks[0].wipe:type']}" "The parsed wipe node type is incorrect."
+
+# Disk[0] - Partitions array
+EXPECT_TO_BE_EQUAL "3" "${disks_map['disks[0].partitions:length']}" "The parsed partitions length is incorrect."
+EXPECT_TO_BE_EQUAL "array" "${disks_map['disks[0].partitions:type']}" "The parsed partitions node type is incorrect."
+
+# Disk[0] - Partition[0] object
+EXPECT_TO_BE_EQUAL "object" "${disks_map['disks[0].partitions[0]:type']}" "The parsed partition 0 type is incorrect."
+
 EXPECT_TO_BE_EQUAL "EFI" "${disks_map['disks[0].partitions[0].name']}" "The parsed EFI partition name is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[0].name:type']}" "The parsed EFI partition name type is incorrect."
+
 EXPECT_TO_BE_EQUAL "512M" "${disks_map['disks[0].partitions[0].size']}" "The parsed EFI partition size is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[0].size:type']}" "The parsed EFI partition size type is incorrect."
+
 EXPECT_TO_BE_EQUAL "EFI System" "${disks_map['disks[0].partitions[0].type']}" "The parsed EFI partition type is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[0].type:type']}" "The parsed EFI partition type node type is incorrect."
+
 EXPECT_TO_BE_EQUAL "vfat" "${disks_map['disks[0].partitions[0].filesystem']}" "The parsed EFI partition filesystem is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[0].filesystem:type']}" "The parsed EFI partition filesystem type is incorrect."
+
 EXPECT_TO_BE_EQUAL "EFI" "${disks_map['disks[0].partitions[0].label']}" "The parsed EFI partition label is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[0].label:type']}" "The parsed EFI partition label type is incorrect."
+
 EXPECT_TO_BE_EQUAL "/boot/efi" "${disks_map['disks[0].partitions[0].mount_point']}" "The parsed EFI partition mount point is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[0].mount_point:type']}" "The parsed EFI partition mount point type is incorrect."
+
+# Disk[0] - Partition[1] object
+EXPECT_TO_BE_EQUAL "object" "${disks_map['disks[0].partitions[1]:type']}" "The parsed partition 1 type is incorrect."
+
 EXPECT_TO_BE_EQUAL "root" "${disks_map['disks[0].partitions[1].name']}" "The parsed root partition name is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].name:type']}" "The parsed root partition name type is incorrect."
+
 EXPECT_TO_BE_EQUAL "50G" "${disks_map['disks[0].partitions[1].size']}" "The parsed root partition size is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].size:type']}" "The parsed root partition size type is incorrect."
+
 EXPECT_TO_BE_EQUAL "Linux filesystem" "${disks_map['disks[0].partitions[1].type']}" "The parsed root partition type is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].type:type']}" "The parsed root partition type node type is incorrect."
+
+# Disk[0] - Partition[1] - Encryption object
+EXPECT_TO_BE_EQUAL "object" "${disks_map['disks[0].partitions[1].encryption:type']}" "The parsed root partition encryption prop type is incorrect."
+
 EXPECT_TO_BE_EQUAL "luks" "${disks_map['disks[0].partitions[1].encryption.type']}" "The parsed root partition encryption type is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].encryption.type:type']}" "The parsed root partition encryption type type is incorrect."
+
 EXPECT_TO_BE_EQUAL "cryptroot" "${disks_map['disks[0].partitions[1].encryption.mapping']}" "The parsed root partition encryption mapping is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].encryption.mapping:type']}" "The parsed root partition encryption mapping type is incorrect."
+
 EXPECT_TO_BE_EQUAL "ext4" "${disks_map['disks[0].partitions[1].filesystem']}" "The parsed root partition filesystem is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].filesystem:type']}" "The parsed root partition filesystem type is incorrect."
+
 EXPECT_TO_BE_EQUAL "ROOT" "${disks_map['disks[0].partitions[1].label']}" "The parsed root partition label is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].label:type']}" "The parsed root partition label type is incorrect."
+
 EXPECT_TO_BE_EQUAL "/" "${disks_map['disks[0].partitions[1].mount_point']}" "The parsed root partition mount point is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[1].mount_point:type']}" "The parsed root partition mount point type is incorrect."
+
+# Disk[0] - Partition[2] object
+EXPECT_TO_BE_EQUAL "object" "${disks_map['disks[0].partitions[2]:type']}" "The parsed partition 2 type is incorrect."
+
 EXPECT_TO_BE_EQUAL "home" "${disks_map['disks[0].partitions[2].name']}" "The parsed home partition name is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].name:type']}" "The parsed home partition name type is incorrect."
+
 EXPECT_TO_BE_EQUAL "rest" "${disks_map['disks[0].partitions[2].size']}" "The parsed home partition size is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].size:type']}" "The parsed home partition size type is incorrect."
+
 EXPECT_TO_BE_EQUAL "Linux filesystem" "${disks_map['disks[0].partitions[2].type']}" "The parsed home partition type is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].type:type']}" "The parsed home partition type node type is incorrect."
+
+# Disk[0] - Partition[2] - Encryption object
+EXPECT_TO_BE_EQUAL "object" "${disks_map['disks[0].partitions[2].encryption:type']}" "The parsed home partition encryption prop type is incorrect."
+
 EXPECT_TO_BE_EQUAL "luks" "${disks_map['disks[0].partitions[2].encryption.type']}" "The parsed home partition encryption type is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].encryption.type:type']}" "The parsed home partition encryption type type is incorrect."
+
 EXPECT_TO_BE_EQUAL "crypthome" "${disks_map['disks[0].partitions[2].encryption.mapping']}" "The parsed home partition encryption mapping is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].encryption.mapping:type']}" "The parsed home partition encryption mapping type is incorrect."
+
 EXPECT_TO_BE_EQUAL "ext4" "${disks_map['disks[0].partitions[2].filesystem']}" "The parsed home partition filesystem is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].filesystem:type']}" "The parsed home partition filesystem type is incorrect."
+
 EXPECT_TO_BE_EQUAL "HOME" "${disks_map['disks[0].partitions[2].label']}" "The parsed home partition label is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].label:type']}" "The parsed home partition label type is incorrect."
+
 EXPECT_TO_BE_EQUAL "/home" "${disks_map['disks[0].partitions[2].mount_point']}" "The parsed home partition mount point is incorrect."
+EXPECT_TO_BE_EQUAL "string" "${disks_map['disks[0].partitions[2].mount_point:type']}" "The parsed home partition mount_point type is incorrect."
 
 unset disks_map
 
