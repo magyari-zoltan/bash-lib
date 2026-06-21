@@ -55,9 +55,8 @@ function parse_yaml() {
         yaml_map["$key"]="$value"
     done < <(
         yq -r '
-            paths(scalars) as $p |
-            (
-                reduce $p[] as $part ("";
+            def path_to_key:
+                reduce .[] as $part ("";
                     if ($part | type) == "number" then
                         . + "[" + ($part | tostring) + "]"
                     else
@@ -67,10 +66,17 @@ function parse_yaml() {
                             . + "." + ($part | tostring)
                         end
                     end
-                )
-            ) as $key |
-            [$key, (getpath($p) | tostring)] |
-            @tsv
+                );
+
+            (    
+                paths(scalars) as $p |
+                [($p | path_to_key), getpath($p) | tostring] | @tsv
+            ),
+            (
+                paths as $p |
+                select(getpath($p) | type == "array") |
+                [($p | path_to_key) + ".length", (getpath($p) | length | tostring)] | @tsv
+            )
         ' "$input_file"
     )
 }

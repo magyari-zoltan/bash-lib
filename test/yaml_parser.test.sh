@@ -133,13 +133,15 @@ ret_val=$?
 expected=0
 EXPECT_TO_BE_EQUAL "$expected" "$ret_val" "The method did not return: $expected."
 
-expected=25
+expected=27
 actual=${#disks_map[@]}
 EXPECT_TO_BE_EQUAL "$expected" "$actual" "The parsed associative array does not contain the expected number of entries."
 
+EXPECT_TO_BE_EQUAL "1" "${disks_map['disks.length']}" "The parsed disks length is incorrect."
 EXPECT_TO_BE_EQUAL "/dev/sda" "${disks_map['disks[0].device']}" "The parsed device value is incorrect."
 EXPECT_TO_BE_EQUAL "gpt" "${disks_map['disks[0].table']}" "The parsed table value is incorrect."
 EXPECT_TO_BE_EQUAL "true" "${disks_map['disks[0].wipe']}" "The parsed wipe value is incorrect."
+EXPECT_TO_BE_EQUAL "3" "${disks_map['disks[0].partitions.length']}" "The parsed partitions length is incorrect."
 EXPECT_TO_BE_EQUAL "EFI" "${disks_map['disks[0].partitions[0].name']}" "The parsed EFI partition name is incorrect."
 EXPECT_TO_BE_EQUAL "512M" "${disks_map['disks[0].partitions[0].size']}" "The parsed EFI partition size is incorrect."
 EXPECT_TO_BE_EQUAL "EFI System" "${disks_map['disks[0].partitions[0].type']}" "The parsed EFI partition type is incorrect."
