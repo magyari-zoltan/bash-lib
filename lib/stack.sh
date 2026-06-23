@@ -9,6 +9,18 @@
 #
 # ------------------------------------------------------------------------------
 
+# Prevent multiple sourcing
+if [[ -n "${STACK_LOADED:-}" ]]; then
+	# Return instead of exit to avoid terminating the calling script.
+	return 0 
+fi
+
+readonly STACK_LOADED=true
+
+# ------------------------------------------------------------------------------
+# Private methods
+# ------------------------------------------------------------------------------
+
 # Adds a new element to the top of the stack
 function stack_push() {
     local -n stackRef="$1"                      # Creates a name reference to the stack passed as the first parameter

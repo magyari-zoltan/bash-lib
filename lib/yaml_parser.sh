@@ -3,8 +3,33 @@
 # ------------------------------------------------------------------------------
 # This script is used to parse yaml files and convert them into bash associative 
 # array.
-# 
+#
+# A corresponding entry is created in the associative array for every YAML entry.
+# The key used in the associative array expresses the entry’s location within the
+# YAML structure using a logical format. This makes references to individual 
+# entries within the associative array clear and intuitive.
+#
+# Additional metadata is also stored in the associative array, such as the 
+# length of an array or the type of an entry.
+#
+# Examples:
+#
+# disks_map['disks:type'] - The type of the disks entry (array).
+# disks_map['disks:length'] - The number of disks in the disks array.
+#
+# disks_map['disks[0]:type'] - The type of the first disk entry (object). 
+# disks_map['disks[0].device'] - /dev/sda
+# disks_map['disks[0].device:type'] - The type of the device entry (string).
+#
 # ------------------------------------------------------------------------------
+
+# Prevent multiple sourcing
+if [[ -n "${YAML_PARSER_LOADED:-}" ]]; then
+	# Return instead of exit to avoid terminating the calling script.
+	return 0 
+fi
+
+readonly YAML_PARSER_LOADED=true
 
 # ------------------------------------------------------------------------------
 # Private methods
