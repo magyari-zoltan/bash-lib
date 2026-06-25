@@ -76,25 +76,29 @@ function unit_test_log_outputs() {
 	local other_logfiles=("$@")
 
 	if [[ $# -eq 0 ]]; then
-		log_output="$(cat $UNIT_TEST_SCRIPT_STDOUT)"
-		if [[ -n "$log_output" ]]; then
-			unit_test_log --only-logfile ""
-			unit_test_log --only-logfile "----------------------------------"
-			unit_test_log --only-logfile "Standard output:"
-			unit_test_log --only-logfile "----------------------------------"
-			unit_test_log --only-logfile ""
-			unit_test_log --only-logfile "$log_output"
-		fi
+        if [[ -f "$UNIT_TEST_SCRIPT_STDOUT" ]]; then
+            log_output="$(cat $UNIT_TEST_SCRIPT_STDOUT)"
+            if [[ -n "$log_output" ]]; then
+                unit_test_log --only-logfile ""
+                unit_test_log --only-logfile "----------------------------------"
+                unit_test_log --only-logfile "Standard output:"
+                unit_test_log --only-logfile "----------------------------------"
+                unit_test_log --only-logfile ""
+                unit_test_log --only-logfile "$log_output"
+            fi
+        fi
 
-		log_output="$(cat $UNIT_TEST_SCRIPT_STDERR)"
-		if [[ -n "$log_output" ]]; then
-			unit_test_log --only-logfile ""
-			unit_test_log --only-logfile "----------------------------------"
-			unit_test_log --only-logfile "Error output:"
-			unit_test_log --only-logfile "----------------------------------"
-			unit_test_log --only-logfile ""
-			unit_test_log --only-logfile "$log_output"
-		fi
+        if [[ -f "$UNIT_TEST_SCRIPT_STDERR" ]]; then
+            log_output="$(cat $UNIT_TEST_SCRIPT_STDERR)"
+            if [[ -n "$log_output" ]]; then
+                unit_test_log --only-logfile ""
+                unit_test_log --only-logfile "----------------------------------"
+                unit_test_log --only-logfile "Error output:"
+                unit_test_log --only-logfile "----------------------------------"
+                unit_test_log --only-logfile ""
+                unit_test_log --only-logfile "$log_output"
+            fi
+        fi
 	else
 		for log_file in "${other_logfiles[@]}"; do
 			if [[ -s "$log_file" ]]; then
