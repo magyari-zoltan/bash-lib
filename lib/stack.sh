@@ -21,6 +21,18 @@ readonly STACK_LOADED=true
 # Private methods
 # ------------------------------------------------------------------------------
 
+# Returns the size of the stack
+function stack_size() {
+    local -n stackRef="$1"                      # Creates a name reference to the stack passed as the first parameter
+    echo "${#stackRef[@]}"                      # Get the size of the array
+}
+
+# Returns true if the stack is empty,
+# false otherwise 
+function stack_is_empty() {
+    [[ $(stack_size "$1") -eq 0 ]] && return 0 || return 1
+}
+
 # Adds a new element to the top of the stack
 function stack_push() {
     local -n stackRef="$1"                      # Creates a name reference to the stack passed as the first parameter
@@ -32,11 +44,11 @@ function stack_pop() {
     local -n stackRef="$1"                      # Creates a name reference to the stack passed as the first parameter
     local -n valueRef="$2"                      # Creates a name reference to the second parameter 
 
-    local length=${#stackRef[@]}                # Get the length of the array
-    if [[ $length -eq 0 ]]; then                # Element can not be poped from an empty stack
+    if stack_is_empty "$1"; then                # Element can not be poped from an empty stack
         return 1                                # Returns 1
     fi 
-    local lastIndex=$((length - 1))             # Calculate the index of the last element
+    local size=$(stack_size "$1")               # Get the length of the array
+    local lastIndex=$((size - 1))               # Calculate the index of the last element
 
     valueRef="${stackRef[$lastIndex]}"          # Get the last element value
     unset "stackRef[$lastIndex]"                # Remove the last element
@@ -46,20 +58,14 @@ function stack_pop() {
 function stack_top() {
     local -n stackRef="$1"                      # Creates a name reference to the stack passed as the first parameter
     local -n valueRef="$2"                      # Creates a name reference to the second parameter 
-
-    local length=${#stackRef[@]}                # Get the length of the array
-    if [[ $length -eq 0 ]]; then                # Element can not be poped from an empty stack
+    
+    if stack_is_empty "$1"; then                # Element can not be poped from an empty stack
         return 1                                # Returns 1
     fi 
-    local lastIndex=$((length - 1))             # Calculate the index of the last element
+
+    local size=$(stack_size "$1")               # Get the length of the array
+    local lastIndex=$((size - 1))               # Calculate the index of the last element
 
     valueRef="${stackRef[$lastIndex]}"          # Get the last element value
 }
 
-# Returns the length of the stack
-function stack_length() {
-    local -n stackRef="$1"                      # Creates a name reference to the stack passed as the first parameter
-    local -n valueRef="$2"                      # Creates a name reference to the second parameter 
-
-    valueRef=${#stackRef[@]}                    # Get the length of the array
-}

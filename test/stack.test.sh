@@ -132,40 +132,66 @@ ENDTEST
 
 # ==============================================================================
 
-DESCRIBE "The 'stack_length' command returns the nr. of items in the stack" 
+DESCRIBE "The 'stack_size' command returns the nr. of items in the stack" 
 
 value1="car"
 value2="train"
 value3="airplain"
 
 stack=("$value1" "$value2" "$value3"); # Global array with initial value
-RUN stack_length stack length
+RUN stack_size stack
 log_variable stack
-log_variable length
+copy_stdout_to size
+log_variable size
 expected=3
-EXPECT_TO_BE_EQUAL "$expected" "$length" "The length should be '$expected'." 
+EXPECT_TO_BE_EQUAL "$expected" "$size" "The size should be '$expected'." 
 
 stack=("$value1" "$value2"); # Global array with initial value
-RUN stack_length stack length
+RUN stack_size stack size
 log_variable stack
-log_variable length
+copy_stdout_to size
+log_variable size
 expected=2
-EXPECT_TO_BE_EQUAL "$expected" "$length" "The length should be '$expected'." 
+EXPECT_TO_BE_EQUAL "$expected" "$size" "The size should be '$expected'." 
 
 stack=("$value1"); # Global array with initial value
-RUN stack_length stack length
+RUN stack_size stack size
 log_variable stack
-log_variable length
+copy_stdout_to size
+log_variable size
 expected=1
-EXPECT_TO_BE_EQUAL "$expected" "$length" "The length should be '$expected'." 
+EXPECT_TO_BE_EQUAL "$expected" "$size" "The size should be '$expected'." 
 
 stack=(); # Global array with initial value
-RUN stack_length stack length
+RUN stack_size stack size
 log_variable stack
-log_variable length
+log_variable size
+copy_stdout_to size
+expected=1
 expected=0
-EXPECT_TO_BE_EQUAL "$expected" "$length" "The length should be '$expected'." 
+EXPECT_TO_BE_EQUAL "$expected" "$size" "The size should be '$expected'." 
 
 ENDTEST
 
 # ==============================================================================
+
+DESCRIBE "The 'stack_is_empty' command returns '0' for empty stacks and '1' for non-empty stacks."
+
+value1="car"
+
+stack=("$value1"); # Global array with initial value
+RUN stack_is_empty stack
+ret_val=$?
+expected=1
+EXPECT_TO_BE_EQUAL "$expected" "$ret_val" "The stack should not be empty when it contains one element."
+
+stack_pop stack value
+RUN stack_is_empty stack
+ret_val=$?
+expected=0
+EXPECT_TO_BE_EQUAL "$expected" "$ret_val" "The stack should be empty after removing its only element."
+
+ENDTEST
+
+# ============================================================================== 
+
