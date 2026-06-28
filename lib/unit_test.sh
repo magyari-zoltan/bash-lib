@@ -42,7 +42,7 @@ readonly UNIT_TEST_LOADED=true
 
 readonly UNIT_TEST_SCRIPT_STDERR="unit_test_script_stderr.log"
 readonly UNIT_TEST_SCRIPT_STDOUT="unit_test_script_sdtout.log"
-readonly UNIT_TEST_EXECUTION_LOG="test_execution.log"
+readonly UNIT_TEST_EXECUTION_LOG=".test_execution.log"
 
 # Empties the unit test execution log file
 > "$UNIT_TEST_EXECUTION_LOG"
