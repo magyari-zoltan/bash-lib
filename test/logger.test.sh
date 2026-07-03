@@ -16,8 +16,16 @@ source "$LIB/logger.sh"
 # ------------------------------------------------------------------------------
 
 function cleanup() {
+	local exit_code=$?
 	cleanup_test_env
+
+	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
+		exit 1
+	fi
+
+	exit "$exit_code"
 }
+
 
 trap 'cleanup' EXIT
 
@@ -157,7 +165,7 @@ expected="DEBUG  - This is a DEBUG message.
 NORMAL - This is a NORMAL message.
 INFO   - This is an INFO message.
 WARNIN - This is a WARNING message.
-ERROR  - This is an ERROR message.x"
+ERROR  - This is an ERROR message."
 
 EXPECT_TO_BE_EQUAL "$expected" "$output"  "In the '$LOGFILE' is expected to be '$expected'."
 

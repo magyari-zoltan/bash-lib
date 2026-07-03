@@ -131,6 +131,9 @@ function log_variable() {
 
 # Removes the stdout/stderr log files created during test execution.
 function cleanup_test_env() {
+	unit_test_record_current_test_result
+	unit_test_print_test_summary
+
 	# Remove error log file
 	if [ -f "$UNIT_TEST_SCRIPT_STDERR" ]; then
 		rm "$UNIT_TEST_SCRIPT_STDERR"
@@ -140,7 +143,14 @@ function cleanup_test_env() {
 	if [ -f "$UNIT_TEST_SCRIPT_STDOUT" ]; then
 		rm "$UNIT_TEST_SCRIPT_STDOUT"
 	fi
+
+	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
+		return 1
+	fi
+
+	return 0
 }
+
 
 # Copies the stdout into the first argument
 function copy_stdout_to() {
@@ -164,29 +174,93 @@ function copy_from_to() {
 
 
 TESTNO=0
+UNIT_TEST_SUCCESSFUL_TESTS=0
+UNIT_TEST_FAILED_TESTS=0
+UNIT_TEST_FAILED_TEST_DETAILS=()
+UNIT_TEST_SUMMARY_PRINTED=0
+UNIT_TEST_CURRENT_TEST_RECORDED=0
+UNIT_TEST_CURRENT_TEST_FAILED=0
+UNIT_TEST_CURRENT_TEST_DESCRIPTION=""
+UNIT_TEST_CURRENT_TEST_FIRST_ERROR_MESSAGE=""
+
+function unit_test_mark_current_test_failed() {
+	local error_message="$1"
+
+	UNIT_TEST_CURRENT_TEST_FAILED=1
+
+	if [[ -n "$error_message" && -z "$UNIT_TEST_CURRENT_TEST_FIRST_ERROR_MESSAGE" ]]; then
+		UNIT_TEST_CURRENT_TEST_FIRST_ERROR_MESSAGE="$error_message"
+	fi
+}
+
+function unit_test_record_current_test_result() {
+	if [[ "$UNIT_TEST_CURRENT_TEST_RECORDED" -eq 1 ]]; then
+		return 0
+	fi
+
+	if [[ "$UNIT_TEST_CURRENT_TEST_FAILED" -eq 1 ]]; then
+		UNIT_TEST_FAILED_TESTS=$((UNIT_TEST_FAILED_TESTS+1))
+		UNIT_TEST_FAILED_TEST_DETAILS+=("$TESTNO. Test: $UNIT_TEST_CURRENT_TEST_DESCRIPTION${UNIT_TEST_CURRENT_TEST_FIRST_ERROR_MESSAGE:+ - $UNIT_TEST_CURRENT_TEST_FIRST_ERROR_MESSAGE}")
+	else
+		UNIT_TEST_SUCCESSFUL_TESTS=$((UNIT_TEST_SUCCESSFUL_TESTS+1))
+	fi
+
+	UNIT_TEST_CURRENT_TEST_RECORDED=1
+	return 0
+}
+
+function unit_test_print_test_summary() {
+	if [[ "$UNIT_TEST_SUMMARY_PRINTED" -eq 1 ]]; then
+		return 0
+	fi
+
+	UNIT_TEST_SUMMARY_PRINTED=1
+	unit_test_log "-------------------------"
+	unit_test_log ""
+	unit_test_log "Total number of tests: $TESTNO"
+	unit_test_log "Successful tests: $UNIT_TEST_SUCCESSFUL_TESTS"
+	unit_test_log "Failed tests: $UNIT_TEST_FAILED_TESTS"
+
+	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
+		unit_test_log ""
+		unit_test_log "Failed test list:"
+
+		local failed_test
+		for failed_test in "${UNIT_TEST_FAILED_TEST_DETAILS[@]}"; do
+			unit_test_log "- $failed_test"
+		done
+	fi
+}
 
 # Starts a new test case, increments its index, and prints its description.
 function DESCRIBE() {
 	description="$1"
 
 	TESTNO=$((TESTNO+1))
+	UNIT_TEST_CURRENT_TEST_RECORDED=0
+	UNIT_TEST_CURRENT_TEST_FAILED=0
+	UNIT_TEST_CURRENT_TEST_DESCRIPTION="$description"
+	UNIT_TEST_CURRENT_TEST_FIRST_ERROR_MESSAGE=""
 	unit_test_log --only-logfile ""
 	unit_test_log --only-logfile "================================================================================"
 	unit_test_log "$TESTNO. Test: $description"
 
 }
 
+
 # Evaluates a condition and prints an error message if the check fails.
 function EXPECT() {
 	message="${@: -1}"
 
 	if ! test "${@:1:$#-1}"; then
+		unit_test_mark_current_test_failed "ERROR: $message"
 		unit_test_log --only-stdout "ERROR: $message"
 		return 1
 	fi
 
 	return 0
 }
+
 
 # Compares the first two arguments, if not equal then prints an error message 
 function EXPECT_TO_BE_EQUAL() {
@@ -195,6 +269,7 @@ function EXPECT_TO_BE_EQUAL() {
 	local message="$3"
 
 	if [[ "$expected" != "$actual" ]]; then
+		unit_test_mark_current_test_failed "ERROR: $message"
 		unit_test_log --only-stdout "ERROR: $message
 ACTUAL: '$actual'"
 		return 1
@@ -203,11 +278,15 @@ ACTUAL: '$actual'"
 	return 0
 }
 
+
 # Prints an explicit test failure in a consistent format.
 function FAIL() {
 	message="$1"
+	unit_test_mark_current_test_failed "ERROR: $message"
 	unit_test_log --only-stdout "ERROR: $message"
+	return 1
 }
+
 
 # Runs a script and redirects standard outputs into separate log files.
 function RUN() {
@@ -235,6 +314,7 @@ function RUN() {
 
 	return $retval
 }
+
 
 # Runs a script in the background and redirects standard outputs into separate log files.
 RUNBG_PID=""
@@ -264,4 +344,6 @@ function RUNBG() {
 
 function ENDTEST() {
 	unit_test_log_outputs "$@"
+	unit_test_record_current_test_result
 }
+

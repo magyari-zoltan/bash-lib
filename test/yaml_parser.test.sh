@@ -16,8 +16,16 @@ source "$LIB/yaml_parser.sh"
 # ------------------------------------------------------------------------------
 
 function cleanup() {
+	local exit_code=$?
 	cleanup_test_env
+
+	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
+		exit 1
+	fi
+
+	exit "$exit_code"
 }
+
 
 trap 'cleanup' EXIT
 
