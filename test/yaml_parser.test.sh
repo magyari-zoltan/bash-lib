@@ -5,6 +5,7 @@ CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # The "lib" folders relative path
 LIB="$CURRENT_SCRIPT_PATH/../lib"
+RES="$CURRENT_SCRIPT_PATH/../res"
 
 
 # Import library scripts
@@ -488,7 +489,7 @@ DESCRIBE "Parse the 'res/disks.yaml' file."
 
 declare -A map=() 
 
-RUN parse_yaml "../res/disks.yaml" map
+RUN parse_yaml "${RES}/disks.yaml" map
 log_variable map
 
 expected="array"
