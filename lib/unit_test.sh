@@ -215,11 +215,12 @@ function unit_test_print_test_summary() {
 	fi
 
 	UNIT_TEST_SUMMARY_PRINTED=1
-	unit_test_log "-------------------------"
 	unit_test_log ""
 	unit_test_log "Total number of tests: $TESTNO"
 	unit_test_log "Successful tests: $UNIT_TEST_SUCCESSFUL_TESTS"
 	unit_test_log "Failed tests: $UNIT_TEST_FAILED_TESTS"
+	unit_test_log "================================================================================"
+	unit_test_log ""
 
 	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
 		unit_test_log ""
