@@ -318,7 +318,7 @@ EXPECT_TO_BE_EQUAL "$expected" "${map["garage.${name}:type"]}" "The '${name}' do
 expected="2"
 EXPECT_TO_BE_EQUAL "$expected" "${map["garage.${name}:level"]}" "The '${name}' does not have the level: $expected."
 
-expected="string"
+expected="index"
 EXPECT_TO_BE_EQUAL "$expected" "${map["garage.${name}[0]:type"]}" "The '${name}' does not have the type: $expected."
 expected="2"
 EXPECT_TO_BE_EQUAL "$expected" "${map["garage.${name}[0]:level"]}" "The '${name}' does not have the level: $expected."
