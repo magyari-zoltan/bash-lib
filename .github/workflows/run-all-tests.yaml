@@ -1,0 +1,36 @@
+name: Bash Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Run tests on Debian
+    runs-on: ubuntu-latest
+
+    container:
+      image: debian:stable
+
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y bash git
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Make tests executable
+        run: |
+          chmod +x test/*.test.sh
+
+      - name: Run all tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for test_file in test/*.test.sh; do
+            echo "Running: $test_file"
+            bash "$test_file"
+          done
