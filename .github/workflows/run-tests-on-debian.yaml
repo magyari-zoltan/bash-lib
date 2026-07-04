@@ -8,9 +8,11 @@ jobs:
   test:
     name: Run tests on Debian
     runs-on: ubuntu-latest
-
     container:
       image: debian:stable
+
+    env:
+      EXPECTED_DISTRO_ID: debian
 
     steps:
       - name: Install dependencies
@@ -19,7 +21,7 @@ jobs:
           apt-get install -y bash git
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Make tests executable
         run: |

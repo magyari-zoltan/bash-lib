@@ -8,9 +8,11 @@ jobs:
   test:
     name: Run tests on Arch Linux
     runs-on: ubuntu-latest
-
     container:
       image: archlinux:latest
+
+    env:
+      EXPECTED_DISTRO_ID: arch
 
     steps:
       - name: Install dependencies
@@ -18,7 +20,7 @@ jobs:
           pacman -Syu --noconfirm --needed bash git ca-certificates coreutils grep sed
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Make tests executable
         run: |
