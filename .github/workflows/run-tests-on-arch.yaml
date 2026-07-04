@@ -1,4 +1,4 @@
-name: Bash Tests
+name: Run all Bash tests on Arch Linux
 
 on:
   push:
@@ -6,17 +6,16 @@ on:
 
 jobs:
   test:
-    name: Run tests on Debian
+    name: Run tests on Arch Linux
     runs-on: ubuntu-latest
 
     container:
-      image: debian:stable
+      image: archlinux:latest
 
     steps:
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y bash git
+          pacman -Syu --noconfirm --needed bash git ca-certificates coreutils grep sed
 
       - name: Checkout repository
         uses: actions/checkout@v4
