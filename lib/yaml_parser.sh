@@ -62,6 +62,17 @@ function trim() {
     printf '%s' "$str"
 }
 
+function yaml_comment() {
+    local line="$1"
+    local -n keyStackRef="$2"
+    local -n mapRef="$3"
+
+    if [[ "$line" =~ ^(.*)[[:space:]]*#.*$ ]]; then
+        local stripped_line="${BASH_REMATCH[1]}"
+        parse_line "$stripped_line" ${!keyStackRef} ${!mapRef}
+    fi
+}
+
 function key_from_stack() {
     local -n keyStackRef="$1"
     local key="${keyStackRef[0]}"
@@ -291,6 +302,11 @@ function parse_line() {
 
     # Skip empty lines
     if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+        return 0
+    fi
+
+    if [[ "$line" == *"#"* ]]; then
+        yaml_comment "$line" ${!keyStackRef} ${!mapRef}
         return 0
     fi
 

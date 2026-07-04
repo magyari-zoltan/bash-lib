@@ -16,8 +16,11 @@ source "$LIB/yaml_parser.sh"
 # Cleanup
 # ------------------------------------------------------------------------------
 
+TMP_DIR="$(mktemp -d)"
+
 function cleanup() {
 	local exit_code=$?
+	rm -rf "$TMP_DIR"
 	cleanup_test_env
 
 	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
@@ -485,6 +488,44 @@ ENDTEST
 
 # ==============================================================================
 
+DESCRIBE "The 'parse_line' ignores inline comments after a property."
+
+stack=("car")
+map=()
+
+log_variable stack
+log_variable map
+RUN parse_line "  engine: 1.2 # comment" stack map
+log_variable stack
+log_variable map
+
+expected="1.2"
+EXPECT_TO_BE_EQUAL "$expected" "${map["car.engine"]}" "The 'car.engine' value should be '$expected'."
+expected="number"
+EXPECT_TO_BE_EQUAL "$expected" "${map["car.engine:type"]}" "The 'car.engine:type' value should be '$expected'."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The 'parse_line' ignores comment-only lines."
+
+stack=("car")
+map=()
+
+log_variable stack
+log_variable map
+RUN parse_line "# comment only" stack map
+log_variable stack
+log_variable map
+
+EXPECT_TO_BE_EQUAL "declare -a stack=([0]=\"car\")" "$(declare -p stack)" "The stack should remain unchanged."
+EXPECT_TO_BE_EQUAL "declare -A map=()" "$(declare -p map)" "The map should remain unchanged."
+
+ENDTEST
+
+# ==============================================================================
+
 DESCRIBE "Parse the 'res/disks.yaml' file."
 
 declare -A map=() 
@@ -630,4 +671,3 @@ EXPECT_TO_BE_EQUAL "$expected" "${map[disks[0].partitions[2].mount_point:type]}"
 ENDTEST
 
 # ==============================================================================
-

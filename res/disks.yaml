@@ -1,8 +1,9 @@
 disks:
   - device: /dev/sda
     table: gpt
-    wipe: true
+    wipe: true # Force wipe the disk before partitioning
 
+    # Partitioning scheme
     partitions:
       - name: EFI
         size: 512M
