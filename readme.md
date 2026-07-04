@@ -47,6 +47,36 @@ disable_error_handler
 - `enable_error_handler` — enables `set -Eeuo pipefail` and installs an `ERR` trap.
 - `disable_error_handler` — disables the trap and turns strict mode off.
 
+## `require.sh`
+
+Checks whether a command exists in `PATH`, and can install it from distro-aware YAML metadata when it is missing.
+
+**Usage**
+
+```bash
+source lib/require.sh
+require bash res/require.yaml
+```
+
+**Functions**
+
+- `require command_name yaml_file` — returns `0` when the command exists, otherwise installs the matching package from YAML and re-checks the command.
+
+## `distro.sh`
+
+Prints the Linux distribution identifier from an `os-release` file.
+
+**Usage**
+
+```bash
+source lib/distro.sh
+distro
+```
+
+**Functions**
+
+- `distro [os_release_file]` — prints the `ID` value from the given file, defaulting to `/etc/os-release`, and returns `1` on error.
+
 ## `logger.sh`
 
 Writes timestamped log messages to stdout or to a log file, with optional level filtering.

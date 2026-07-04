@@ -17,7 +17,8 @@ application entry point.
 
 ## Dependency hierarchy
 
-- Standalone helpers: `debug.sh`, `distro.sh`, `error_handler.sh`, `logger.sh`, `require.sh`, `stack.sh`, `type.sh`, `unit_test.sh`.
+- Standalone helpers: `debug.sh`, `distro.sh`, `error_handler.sh`, `logger.sh`, `stack.sh`, `type.sh`, `unit_test.sh`.
+- `lib/require.sh` -> `lib/distro.sh`, `lib/yaml_parser.sh`.
 - `lib/yaml_parser.sh` -> `lib/type.sh`, `lib/stack.sh`.
 - `lib/unit_test.sh` -> all test files.
 
