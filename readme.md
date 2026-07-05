@@ -49,7 +49,7 @@ disable_error_handler
 
 ## `require.sh`
 
-Checks whether a command exists in `PATH`, and can install it from distro-aware YAML metadata when it is missing.
+Checks whether a command exists in `PATH`, and can install it from distro-aware YAML metadata or run a custom install script when it is missing.
 
 **Usage**
 
@@ -60,7 +60,47 @@ require bash res/require.yaml
 
 **Functions**
 
-- `require command_name yaml_file` — returns `0` when the command exists, otherwise installs the matching package from YAML and re-checks the command.
+- `require command_name yaml_file` — returns `0` when the command exists, otherwise installs the matching package or runs the custom script from YAML and re-checks the command.
+
+**Example YAML**
+
+```yaml
+# Information regarding app installation for each supported distro.
+# What package is the app installed from, and what command is used to install it.
+package_manager:
+  debian:
+    # Refresh and install command for the package manager.
+    refresh: apt-get update
+    install: apt-get install -y
+
+    # The app section is used to map the name of the app to the package name.
+    # This is useful when the name of the app is different from the package name.
+    app:
+      fdisk: util-linux
+      bind: dnsutils
+
+  arch:
+    # Refresh and install command for the package manager.
+    refresh: pacman -Syu
+    install: pacman -S --noconfirm
+
+    # If the app needs to be compiled from source, you can specify the base
+    # folder of custom installation scripts.
+    custom_script_folder: res/
+
+    # The app section is used to map the name of the app to the package name.
+    # This is useful when the name of the app is different from the package name.
+    app:
+      fdisk: util-linux
+      # If the name of the app is identical to the package it is not necessary
+      # to specify the package name, but it is still possible to do so.
+      # bind: bind
+
+      # If the app needs to be compiled from source, you can specify a script
+      # to run to install it.
+      nodejs:
+        script: arch/install/nodejs.sh
+```
 
 ## `distro.sh`
 

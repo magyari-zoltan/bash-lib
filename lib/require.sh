@@ -52,6 +52,33 @@ function get_package() {
 	printf '%s\n' "${metadataRef[$package_key]:-$commandName}"
 }
 
+# Reads the distro-specific install script for a command from the YAML metadata.
+function get_install_script() {
+	local -n metadataRef="$1"
+	local distroName="$2"
+	local commandName="$3"
+	local script_key="package_manager.${distroName}.app.${commandName}.script"
+
+	printf '%s\n' "${metadataRef[$script_key]:-}"
+}
+
+# Resolves a possibly relative script path against the YAML file directory.
+function resolve_script_path() {
+	local yamlFile="$1"
+	local scriptPath="$2"
+	local yamlDir
+
+	if [[ "$scriptPath" = /* ]]; then
+		printf '%s\n' "$scriptPath"
+		return 0
+	fi
+
+	yamlDir="${yamlFile%/*}"
+	[[ -n "$yamlDir" ]] || yamlDir="."
+	yamlDir="$(cd "$yamlDir" && pwd)"
+	printf '%s/%s\n' "$yamlDir" "$scriptPath"
+}
+
 # Tries to install a missing command using distro-aware package metadata.
 function install_missing_command() {
 	local commandName="$1"
@@ -59,6 +86,8 @@ function install_missing_command() {
 
 	local -A packageMetadata=()
 	local -a installCmdAndArgs=()
+	local installScript
+	local resolvedScript
 
     # Check if the YAML file is provided when a command is missing
 	if [[ -z "$yaml_file" ]]; then
@@ -78,14 +107,33 @@ function install_missing_command() {
 
     # Retrieve the package name for the given command and distribution from the parsed metadata
 	local packageName="$(get_package packageMetadata "$distroName" "$commandName")"
+	installScript="$(get_install_script packageMetadata "$distroName" "$commandName")"
 
-    # Retrieve the install command and package name for the given command and distribution
+    # Retrieve the install command for the given command and distribution
 	local installCommand="$(get_command packageMetadata "$distroName")"
 	if [[ -z "$installCommand" ]]; then
 		echo "ERROR: install command not found for distro: $distroName" >&2
 		return 1
 	fi
-    # Split the install command into an array to handle commands with arguments,
+
+    # If a custom install script is defined then use it instead of the package manager.
+	if [[ -n "$installScript" ]]; then
+		resolvedScript="$(resolve_script_path "$yaml_file" "$installScript")" || return 1
+
+		if [[ ! -x "$resolvedScript" ]]; then
+			echo "ERROR: install script is not executable: $resolvedScript" >&2
+			return 1
+		fi
+
+		if ! REQUIRE_TARGET_COMMAND="$commandName" "$resolvedScript" "$commandName"; then
+			echo "ERROR: failed to install package for command: $commandName" >&2
+			return 1
+		fi
+
+		return 0
+	fi
+
+    # Split the install command into an array to handle commands with arguments.
 	read -r -a installCmdAndArgs <<< "$installCommand"
 
     # Attempt to install the package for the missing command.

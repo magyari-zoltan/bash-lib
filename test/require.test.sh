@@ -72,12 +72,15 @@ TEE_BIN="$(command -v tee)"
 CAT_BIN="$(command -v cat)"
 SED_BIN="$(command -v sed)"
 BASH_BIN="$(command -v bash)"
+MKDIR_BIN="$(command -v mkdir)"
 
 mock_command "$BIN_DIR/bash" "$BASH_BIN"
 mock_command "$BIN_DIR/tee" "$TEE_BIN"
 mock_command "$BIN_DIR/cat" "$CAT_BIN"
 mock_command "$BIN_DIR/rm" "$RM_BIN"
 mock_command "$BIN_DIR/sed" "$SED_BIN"
+mock_command "$BIN_DIR/mkdir" "$MKDIR_BIN"
+mock_command "$BIN_DIR/chmod" "$CHMOD_BIN"
 
 # ------------------------------------------------------------------------------
 # Create a fake package manager script that simulates installing packages and
@@ -114,6 +117,69 @@ mock_package_manager "$BIN_DIR/apt-get"
 mock_package_manager "$BIN_DIR/pacman"
 
 # ------------------------------------------------------------------------------
+# Creates a custom require.yaml file that defines a custom install script for 
+# the current distro. The custom install script will simulate the installation 
+# of a command and log the execution to a custom script log file. The custom 
+# install script will be executed by the require command when the command is 
+# missing and a custom script is defined in the require.yaml file.
+# ------------------------------------------------------------------------------
+function create_yaml_with_custom_script() {
+    local yaml_file="$1"
+    local distroName="$2"
+    local appName="$3"
+
+    cat > "$yaml_file" <<EOF
+package_manager:
+  $distroName:
+    install: $(get_distro_specific_installer)
+    app:
+      __bash_lib_custom_script_command__:
+        script: $distroName/install/$appName.sh
+EOF
+}
+
+# ------------------------------------------------------------------------------
+# Creates a custom install script that simulates the installation of a command
+# and logs the execution to a custom script log file. The custom install script
+# will be executed by the require command when the command is missing and a
+# custom script is defined in the require.yaml file.
+# ------------------------------------------------------------------------------
+function create_custom_install_script() {
+    local appName="$1"
+
+    # Create a custom install script for the current distro. The custom install script
+    # will simulate the installation of a command and log the execution to a custom
+    # script log file. The custom install script will be executed by the require
+    # command when the command is missing and a custom script is defined in the
+    # require.yaml file.
+    custom_script_dir="$TMP_DIR/$distro_name/install"
+    script_file="$custom_script_dir/$appName.sh"
+
+    mkdir -p "$custom_script_dir"
+
+	cat > "$script_file" <<'EOF'
+#!/bin/bash
+
+set -euo pipefail
+
+target="${REQUIRE_TARGET_COMMAND:-}"
+if [[ -z "$target" ]]; then
+	exit 1
+fi
+
+cat > "$INSTALLED_BIN/$target" <<'EOI'
+#!/bin/bash
+exit 0
+EOI
+
+chmod +x "$INSTALLED_BIN/$target"
+printf '%s %s\n' "${0##*/}" "$*" >> "$LOG_DIR/custom-script.log"
+EOF
+
+	chmod +x "$script_file"
+}
+
+# ------------------------------------------------------------------------------
 # Returns the contents of the install log file if it exists, otherwise returns 
 # an empty string. The log files is created by the mock package manager scripts 
 # to record the install commands that were executed during the tests.
@@ -129,7 +195,7 @@ function get_install_log_contents() {
 # verify that the require command calls the correct package manager during the
 # tests.
 # ------------------------------------------------------------------------------
-function get_install_command() {
+function get_distro_specific_installer() {
 	case "$(distro)" in
 		debian) printf '%s' 'apt-get install -y' ;;
 		arch) printf '%s' 'pacman -S --noconfirm' ;;
@@ -173,7 +239,7 @@ DESCRIBE "The require command installs a mapped package when the command is miss
 # Example expected install commands for different distros:
 # apt-get install -y util-linux
 # pacman -S --noconfirm util-linux
-expected_install_command="$(get_install_command)"
+expected_installer="$(get_distro_specific_installer)"
 
 # Clear the install log before running the require command to ensure that we 
 # only capture the install command for this test.
@@ -195,7 +261,7 @@ copy_stderr_to stderr_output
 
 EXPECT_TO_BE_EQUAL "0" "$ret_val" "The return value should be '0' after installing the mapped package."
 EXPECT_TO_BE_EQUAL "" "$stderr_output" "No error output is expected after a successful install."
-EXPECT_TO_BE_EQUAL "${expected_install_command} util-linux" "$(get_install_log_contents)" "The package manager should be called with the mapped package."
+EXPECT_TO_BE_EQUAL "${expected_installer} util-linux" "$(get_install_log_contents)" "The package manager should be called with the mapped package."
 
 # Verify that the installed command is now available on the PATH.
 command -v fdisk >/dev/null 2>&1
@@ -225,12 +291,91 @@ copy_stderr_to stderr_output
 
 EXPECT_TO_BE_EQUAL "0" "$ret_val" "The return value should be '0' after installing the fallback package."
 EXPECT_TO_BE_EQUAL "" "$stderr_output" "No error output is expected after a successful fallback install."
-EXPECT_TO_BE_EQUAL "${expected_install_command} __bash_lib_fallback_missing_command__" "$(get_install_log_contents)" "The package manager should be called with the command name."
+EXPECT_TO_BE_EQUAL "${expected_installer} __bash_lib_fallback_missing_command__" "$(get_install_log_contents)" "The package manager should be called with the command name."
 
 # Verify that the installed command is now available on the PATH.
 command -v __bash_lib_fallback_missing_command__ >/dev/null 2>&1
 ret_val=$?
 EXPECT_TO_BE_EQUAL "0" "$ret_val" "The installed command should be visible on PATH."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require command runs a custom install script when one is defined."
+
+# Get the current distro name to create a custom require.yaml file that defines a
+# custom install script for the current distro. 
+distro_name="$(distro)"
+
+# Create a custom require.yaml file that defines a custom install script for the
+# current distro. The custom install script will simulate the installation of a
+# command and log the execution to a custom script log file.
+appName="nodejs"
+custom_yaml="$TMP_DIR/custom-require.yaml"
+create_yaml_with_custom_script "$custom_yaml" "$distro_name" "$appName"
+
+# Create a custom install script that simulates the installation of a command
+# and logs the execution to a custom script log file. The custom install script
+# will be executed by the require command when the command is missing and a
+# custom script is defined in the require.yaml file.
+create_custom_install_script "$appName"
+
+# Clear the install log before running the require command to ensure that we only
+# capture the install command for this test.
+: > "$LOG_DIR/install.log"
+
+# Run the require command for a command that is mapped to a custom install script
+# in the custom require.yaml file. The custom install script will simulate the
+# installation of the command and log the execution to a custom script log file.
+#
+# The REQUIRE_TARGET_COMMAND environment variable is set to the command name that
+# is being required. This allows the custom install script to create a fake 
+# installed command with the same name as the required command.
+REQUIRE_TARGET_COMMAND="__bash_lib_custom_script_command__" RUN require "__bash_lib_custom_script_command__" "$custom_yaml"
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "0" "$ret_val" "The return value should be '0' after running the custom install script."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No error output is expected after a successful custom script install."
+EXPECT_TO_BE_EQUAL "" "$(get_install_log_contents)" "The package manager should not be used when a custom script is defined."
+EXPECT_TO_BE_EQUAL "nodejs.sh __bash_lib_custom_script_command__" "$(cat "$LOG_DIR/custom-script.log")" "The custom script should be executed for the command."
+
+# Verify that the installed command is now available on the PATH.
+command -v __bash_lib_custom_script_command__ >/dev/null 2>&1
+ret_val=$?
+EXPECT_TO_BE_EQUAL "0" "$ret_val" "The installed command should be visible on PATH."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require command returns 1 on an unsupported distro."
+
+# Save the original distro implementation so the test can override it safely.
+original_distro_backup="$(declare -f distro)"
+
+# Force an unsupported distro name for this test case.
+function distro() {
+	printf '%s\n' 'fedora'
+}
+
+# Clear the install log before running the require command. This ensures that we
+# only capture the install command for this test.
+: > "$LOG_DIR/install.log"
+
+# Run require against a distro that is not present in the YAML metadata.
+RUN require "__bash_lib_unsupported_missing_command__" "$RES/require.yaml"
+ret_val=$?
+copy_stderr_to stderr_output
+
+# The command should fail with a distro-specific error and no install attempt.
+EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' for an unsupported distro."
+EXPECT_TO_BE_EQUAL "ERROR: install command not found for distro: fedora" "$stderr_output" "The error message should mention the unsupported distro."
+EXPECT_TO_BE_EQUAL "" "$(get_install_log_contents)" "No install should happen when the distro is unsupported."
+
+# Restore the original distro implementation for the remaining tests.
+eval "$original_distro_backup"
 
 ENDTEST
 
