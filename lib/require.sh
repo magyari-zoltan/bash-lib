@@ -153,8 +153,13 @@ function require() {
 	local commandName="$1"
 	local yaml_file="${2:-}"
 
-	if [[ -z "$commandName" ]]; then
-		echo "ERROR: require expects a command name." >&2
+	if [[ $# -ne 2 || -z "$commandName" || -z "$yaml_file" ]]; then
+		echo "ERROR: require expects a command name and a YAML file." >&2
+		return 1
+	fi
+
+	if [[ ! -r "$yaml_file" ]]; then
+		echo "ERROR: unable to read YAML file: $yaml_file" >&2
 		return 1
 	fi
 

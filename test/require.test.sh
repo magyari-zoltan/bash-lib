@@ -408,18 +408,91 @@ ENDTEST
 
 # ==============================================================================
 
-DESCRIBE "The require command returns 1 when no command name is provided."
+DESCRIBE "The require command returns 1 when no argument is provided."
 
 # Run the require command without any arguments. The require command should
-# return 1 and print an error message to stderr indicating that a command name
-# is required.
+# return 1 and print an error message to stderr indicating that both required
+# arguments are missing.
 RUN require
 ret_val=$?
 copy_stderr_to stderr_output
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when no command name is provided."
-EXPECT_TO_BE_EQUAL "ERROR: require expects a command name." "$stderr_output" "The error message should explain the missing argument."
+EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain the missing arguments."
 
 ENDTEST
 
 # ==============================================================================
+
+DESCRIBE "The require command returns 1 when the command argument is empty."
+
+# Run the require command with an empty command name and a valid YAML file.
+RUN require "" "$RES/require.yaml"
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the command argument is empty."
+EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that both arguments are required."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require command returns 1 when the YAML file argument is missing."
+
+# Run the require command with only the command name. The command should fail
+# because the YAML file is required for missing-command installation.
+RUN require bash
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the YAML file argument is missing."
+EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that both arguments are required."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require command returns 1 when the YAML file argument is empty."
+
+# Run the require command with a valid command name but no YAML file path.
+RUN require bash ""
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the YAML file argument is empty."
+EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that both arguments are required."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require command returns 1 when the YAML file path does not exist."
+
+# Run the require command with a YAML path that does not exist.
+RUN require bash "$TMP_DIR/missing-require.yaml"
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the YAML file path does not exist."
+EXPECT_TO_BE_EQUAL "ERROR: unable to read YAML file: $TMP_DIR/missing-require.yaml" "$stderr_output" "The error message should mention the missing YAML file path."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require command returns 1 when too many arguments are provided."
+
+# Run the require command with an extra positional argument. The command should
+# fail because it only accepts a command name and a YAML file path.
+RUN require bash "$RES/require.yaml" extra
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when too many arguments are provided."
+EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that only two arguments are allowed."
+
+ENDTEST
+
+# ==============================================================================
+
