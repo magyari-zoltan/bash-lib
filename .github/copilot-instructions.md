@@ -25,9 +25,24 @@ application entry point.
 ## Key conventions
 
 - Keep reusable code in `lib/` and put only corresponding tests in `test/`.
+
+### Code quality
+
+- Document modules, methods, with comments to make code more undestandable.
+- Use comments in tests also to understand the test steps and the expected results.
+- Cover each library module with tests, including edge cases and error handling.
+
+### Code style
+
 - Use `#!/bin/bash` as the shebang.
 - Write POSIX-compliant code
-- Document modules, methods, with comments to make code more undestandable.
-- Cover each library module with tests, including edge cases and error handling.
+
+### Code formatting
+
+- Function names must use lowercase letters and underscores only.
+- Variable names must use camelCase.
+
+### Copilot instructions
+
 - Do not propose new copilot instruction modifications only when you are
   explicitly are told to do so.
