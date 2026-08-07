@@ -48,3 +48,6 @@ function distro() {
 	echo "ERROR: distro ID not found in $os_release_file" >&2
 	return 1
 }
+
+# Execute the helper only when the file is run directly.
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && distro "$@"

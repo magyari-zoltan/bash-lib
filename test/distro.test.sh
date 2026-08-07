@@ -86,6 +86,21 @@ ENDTEST
 
 # ==============================================================================
 
+DESCRIBE "The distro script prints the distribution when executed directly."
+
+RUN bash "$LIB/distro.sh"
+ret_val=$?
+copy_stdout_to output
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "0" "$ret_val" "The script should succeed when executed directly."
+EXPECT "$output" "test -n"
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "The script should not print errors for the current environment."
+
+ENDTEST
+
+# ==============================================================================
+
 DESCRIBE "The distro command returns 1 when the os-release file is missing."
 
 missing_os_release="$TMP_DIR/missing-os-release"
