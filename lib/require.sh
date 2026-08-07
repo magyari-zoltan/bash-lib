@@ -66,14 +66,13 @@ function get_install_script() {
 function resolve_script_path() {
 	local yamlFile="$1"
 	local scriptPath="$2"
-	local yamlDir
 
 	if [[ "$scriptPath" = /* ]]; then
 		printf '%s\n' "$scriptPath"
 		return 0
 	fi
 
-	yamlDir="${yamlFile%/*}"
+	local yamlDir="${yamlFile%/*}"
 	[[ -n "$yamlDir" ]] || yamlDir="."
 	yamlDir="$(cd "$yamlDir" && pwd)"
 	printf '%s/%s\n' "$yamlDir" "$scriptPath"
@@ -86,8 +85,6 @@ function install_missing_command() {
 
 	local -A packageMetadata=()
 	local -a installCmdAndArgs=()
-	local installScript
-	local resolvedScript
 
     # Check if the YAML file is provided when a command is missing
 	if [[ -z "$yaml_file" ]]; then
@@ -107,7 +104,7 @@ function install_missing_command() {
 
     # Retrieve the package name for the given command and distribution from the parsed metadata
 	local packageName="$(get_package packageMetadata "$distroName" "$commandName")"
-	installScript="$(get_install_script packageMetadata "$distroName" "$commandName")"
+	local installScript="$(get_install_script packageMetadata "$distroName" "$commandName")"
 
     # Retrieve the install command for the given command and distribution
 	local installCommand="$(get_command packageMetadata "$distroName")"
@@ -118,7 +115,7 @@ function install_missing_command() {
 
     # If a custom install script is defined then use it instead of the package manager.
 	if [[ -n "$installScript" ]]; then
-		resolvedScript="$(resolve_script_path "$yaml_file" "$installScript")" || return 1
+		local resolvedScript="$(resolve_script_path "$yaml_file" "$installScript")" || return 1
 
 		if [[ ! -x "$resolvedScript" ]]; then
 			echo "ERROR: install script is not executable: $resolvedScript" >&2
@@ -179,3 +176,6 @@ function require() {
 	echo "ERROR: required command not found after installation: $commandName" >&2
 	return 1
 }
+
+# Execute the helper only when the file is run directly.
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && require "$@"

@@ -71,14 +71,21 @@ CHMOD_BIN="$(command -v chmod)"
 TEE_BIN="$(command -v tee)"
 CAT_BIN="$(command -v cat)"
 SED_BIN="$(command -v sed)"
+DIRNAME_BIN="$(command -v dirname)"
 BASH_BIN="$(command -v bash)"
 MKDIR_BIN="$(command -v mkdir)"
 
 mock_command "$BIN_DIR/bash" "$BASH_BIN"
+cat > "$BIN_DIR/sudo" <<EOF
+#!/bin/bash
+exec "\$@"
+EOF
+"$CHMOD_BIN" +x "$BIN_DIR/sudo"
 mock_command "$BIN_DIR/tee" "$TEE_BIN"
 mock_command "$BIN_DIR/cat" "$CAT_BIN"
 mock_command "$BIN_DIR/rm" "$RM_BIN"
 mock_command "$BIN_DIR/sed" "$SED_BIN"
+mock_command "$BIN_DIR/dirname" "$DIRNAME_BIN"
 mock_command "$BIN_DIR/mkdir" "$MKDIR_BIN"
 mock_command "$BIN_DIR/chmod" "$CHMOD_BIN"
 
@@ -225,6 +232,19 @@ copy_stderr_to stderr_output
 EXPECT_TO_BE_EQUAL "0" "$ret_val" "The return value should be '0' for existing commands."
 EXPECT_TO_BE_EQUAL "" "$stderr_output" "No error output is expected for existing commands."
 EXPECT_TO_BE_EQUAL "" "$(get_install_log_contents)" "No install should happen when the command already exists."
+
+ENDTEST
+
+# ==============================================================================
+
+DESCRIBE "The require script succeeds when executed directly for an existing command."
+
+RUN bash "$LIB/require.sh" bash "$RES/require.yaml"
+ret_val=$?
+copy_stderr_to stderr_output
+
+EXPECT_TO_BE_EQUAL "0" "$ret_val" "The script should return '0' when it is executed directly for an existing command."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No error output is expected for direct execution with an existing command."
 
 ENDTEST
 
@@ -495,4 +515,3 @@ EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$st
 ENDTEST
 
 # ==============================================================================
-
