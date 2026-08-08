@@ -20,7 +20,7 @@ readonly REQUIRE_LOADED=true
 # Import dependencies
 # ------------------------------------------------------------------------------
 
-echo "The calling hierachy: $BASH_SOURCE"
+echo "The calling hierachy: ${BASH_SOURCE[@]}"
 
 # Get current scripts absolute path
 currentFilesPathIndex=$((${#BASH_SOURCE[@]} - 1))
