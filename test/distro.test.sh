@@ -86,7 +86,7 @@ ENDTEST
 
 # ==============================================================================
 
-DESCRIBE "The distro script prints the distribution when executed directly."
+DESCRIBE "The distro script does not print anything when executed directly."
 
 RUN bash "$LIB/distro.sh"
 ret_val=$?
@@ -94,8 +94,8 @@ copy_stdout_to output
 copy_stderr_to stderr_output
 
 EXPECT_TO_BE_EQUAL "0" "$ret_val" "The script should succeed when executed directly."
-EXPECT "$output" "test -n"
-EXPECT_TO_BE_EQUAL "" "$stderr_output" "The script should not print errors for the current environment."
+EXPECT_TO_BE_EQUAL "" "$output" "The script should not print output when executed directly."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "The script should not print errors when executed directly."
 
 ENDTEST
 
