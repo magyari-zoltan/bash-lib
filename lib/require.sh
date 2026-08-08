@@ -189,6 +189,3 @@ function require() {
 	error "required command not found after installation: $commandName"
 	return 1
 }
-
-# Execute the helper only when the file is run directly.
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && require "$@"
