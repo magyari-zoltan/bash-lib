@@ -7,10 +7,18 @@ TEST_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB="$TEST_SCRIPT_PATH/../lib"
 RES="$TEST_SCRIPT_PATH/../res"
 
+TEST_TYPE_LINK="$TEST_SCRIPT_PATH/type.sh"
+TEST_STACK_LINK="$TEST_SCRIPT_PATH/stack.sh"
+
+ln -sfn "$LIB/type.sh" "$TEST_TYPE_LINK"
+ln -sfn "$LIB/stack.sh" "$TEST_STACK_LINK"
+
 
 # Import library scripts
 source "$LIB/unit_test.sh"
 source "$LIB/require.sh"
+
+LIB="$TEST_SCRIPT_PATH/../lib"
 
 # ------------------------------------------------------------------------------
 # Cleanup
@@ -21,7 +29,8 @@ TMP_DIR="$(mktemp -d)"
 function cleanup() {
 	local exit_code=$?
 	cleanup_test_env
-	rm -rf "$TMP_DIR"
+	"$RM_BIN" -f "$TEST_TYPE_LINK" "$TEST_STACK_LINK"
+	"$RM_BIN" -rf "$TMP_DIR"
 
 	if [[ "$UNIT_TEST_FAILED_TESTS" -gt 0 ]]; then
 		exit 1
