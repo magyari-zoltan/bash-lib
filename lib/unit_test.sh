@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
 # Mini unit test framework for Bash scripts.
@@ -347,4 +347,3 @@ function ENDTEST() {
 	unit_test_log_outputs "$@"
 	unit_test_record_current_test_result
 }
-

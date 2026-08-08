@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
 # The implementation of the stack data structure.
@@ -68,4 +68,3 @@ function stack_top() {
 
     valueRef="${stackRef[$lastIndex]}"          # Get the last element value
 }
-

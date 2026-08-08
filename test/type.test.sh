@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Get current scripts absolute path
 CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -232,4 +232,3 @@ EXPECT_TO_BE_EQUAL "string" "$output" "The type of '$value' should be 'string'."
 ENDTEST
 
 # ==============================================================================
-

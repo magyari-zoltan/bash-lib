@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Get current scripts absolute path
 TEST_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -59,7 +59,7 @@ function mock_command() {
 	local target="$2"
 
 	cat > "$file" <<EOF
-#!/bin/bash
+#!/usr/bin/env bash
 exec "$target" "\$@"
 EOF
 
@@ -77,7 +77,7 @@ MKDIR_BIN="$(command -v mkdir)"
 
 mock_command "$BIN_DIR/bash" "$BASH_BIN"
 cat > "$BIN_DIR/sudo" <<EOF
-#!/bin/bash
+#!/usr/bin/env bash
 exec "\$@"
 EOF
 "$CHMOD_BIN" +x "$BIN_DIR/sudo"
@@ -97,7 +97,7 @@ function mock_package_manager() {
 	local file="$1"
 
 	cat > "$file" <<EOF
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -109,7 +109,7 @@ package="\${*: -1}"
 target="\${REQUIRE_TARGET_COMMAND:-\$package}"
 
 cat > "\$INSTALLED_BIN/\$target" <<'EOI'
-#!/bin/bash
+#!/usr/bin/env bash
 exit 0
 EOI
 
@@ -165,7 +165,7 @@ function create_custom_install_script() {
     mkdir -p "$custom_script_dir"
 
 	cat > "$script_file" <<'EOF'
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -175,7 +175,7 @@ if [[ -z "$target" ]]; then
 fi
 
 cat > "$INSTALLED_BIN/$target" <<'EOI'
-#!/bin/bash
+#!/usr/bin/env bash
 exit 0
 EOI
 

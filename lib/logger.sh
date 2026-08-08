@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ------------------------------------------------------------------------------
 # Bash script logging helper.
@@ -82,4 +82,3 @@ warning() {
 error() {
 	log "$1" "ERROR"
 }
-

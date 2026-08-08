@@ -1,3 +1,20 @@
+#!/usr/bin/env bash
+
+# ------------------------------------------------------------------------------
+# Bash type inspection helper.
+#
+# This file provides helper functions for detecting Bash variable and value
+# types such as arrays, maps, numbers, booleans, strings, and namerefs.
+# ------------------------------------------------------------------------------
+
+# Prevent multiple sourcing
+if [[ -n "${TYPE_LOADED:-}" ]]; then
+	# Return instead of exit to avoid terminating the calling script.
+	return 0
+fi
+
+readonly TYPE_LOADED=true
+
 type() {
     local var_name="$1"
 
