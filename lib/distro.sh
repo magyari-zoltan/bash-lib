@@ -23,7 +23,6 @@ readonly DISTRO_LOADED=true
 
 # Get current scripts absolute path
 CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo "The 'disro.sh' script is located at: $CURRENT_SCRIPT_PATH"
 
 # The "lib" folders relative path
 LIB="$CURRENT_SCRIPT_PATH"
