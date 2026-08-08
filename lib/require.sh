@@ -21,12 +21,14 @@ readonly REQUIRE_LOADED=true
 # ------------------------------------------------------------------------------
 
 # Get current scripts absolute path
-CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+currentFilesPathIndex=$((${#BASH_SOURCE[@]} - 1))
+CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[$currentFilesPathIndex]}")" && pwd)"
 
 # The "lib" folders relative path
 LIB="$CURRENT_SCRIPT_PATH"
 
 source "$LIB/distro.sh"
+source "$LIB/logger.sh"
 source "$LIB/yaml_parser.sh"
 
 # ------------------------------------------------------------------------------
@@ -39,6 +41,7 @@ function get_command() {
 	local distroName="$2"
 	local key="package_manager.${distroName}.install"
 
+	debug "Resolving install command for distro: $distroName"
 	printf '%s\n' "${metadataRef[$key]:-}"
 }
 
@@ -49,6 +52,7 @@ function get_package() {
 	local commandName="$3"
 	local package_key="package_manager.${distroName}.app.${commandName}"
 
+	debug "Resolving package name for command: $commandName on distro: $distroName"
 	printf '%s\n' "${metadataRef[$package_key]:-$commandName}"
 }
 
@@ -59,6 +63,7 @@ function get_install_script() {
 	local commandName="$3"
 	local script_key="package_manager.${distroName}.app.${commandName}.script"
 
+	debug "Resolving install script for command: $commandName on distro: $distroName"
 	printf '%s\n' "${metadataRef[$script_key]:-}"
 }
 
@@ -66,6 +71,8 @@ function get_install_script() {
 function resolve_script_path() {
 	local yamlFile="$1"
 	local scriptPath="$2"
+
+	debug "Resolving install script path: $scriptPath"
 
 	if [[ "$scriptPath" = /* ]]; then
 		printf '%s\n' "$scriptPath"
@@ -86,59 +93,63 @@ function install_missing_command() {
 	local -A packageMetadata=()
 	local -a installCmdAndArgs=()
 
-    # Check if the YAML file is provided when a command is missing
+	info "Command not found, trying to install: $commandName"
+
 	if [[ -z "$yaml_file" ]]; then
-		echo "ERROR: require needs a YAML file when a command is missing." >&2
+		error "require needs a YAML file when a command is missing."
 		return 1
 	fi
 
-    # Determine the current Linux distribution using the distro function
+	debug "Detecting current Linux distribution"
 	local distroName="$(distro)" || return 1
 
-    # Check if the YAML file is readable before attempting to parse it
 	if [[ ! -r "$yaml_file" ]]; then
-		echo "ERROR: unable to read YAML file: $yaml_file" >&2
+		error "unable to read YAML file: $yaml_file"
 		return 1
 	fi
+	info "Parsing package metadata from: $yaml_file"
 	parse_yaml "$yaml_file" packageMetadata
 
-    # Retrieve the package name for the given command and distribution from the parsed metadata
 	local packageName="$(get_package packageMetadata "$distroName" "$commandName")"
 	local installScript="$(get_install_script packageMetadata "$distroName" "$commandName")"
+	debug "Resolved package name: $packageName"
+	debug "Resolved install script: ${installScript:-<none>}"
 
-    # Retrieve the install command for the given command and distribution
 	local installCommand="$(get_command packageMetadata "$distroName")"
 	if [[ -z "$installCommand" ]]; then
-		echo "ERROR: install command not found for distro: $distroName" >&2
+		error "install command not found for distro: $distroName"
 		return 1
 	fi
+	debug "Resolved package manager command: $installCommand"
 
-    # If a custom install script is defined then use it instead of the package manager.
 	if [[ -n "$installScript" ]]; then
 		local resolvedScript="$(resolve_script_path "$yaml_file" "$installScript")" || return 1
 
 		if [[ ! -x "$resolvedScript" ]]; then
-			echo "ERROR: install script is not executable: $resolvedScript" >&2
+			error "install script is not executable: $resolvedScript"
 			return 1
 		fi
 
+		info "Running custom install script: $resolvedScript"
 		if ! REQUIRE_TARGET_COMMAND="$commandName" "$resolvedScript" "$commandName"; then
-			echo "ERROR: failed to install package for command: $commandName" >&2
+			error "failed to install package for command: $commandName"
 			return 1
 		fi
 
+		info "Installed command via custom script: $commandName"
 		return 0
 	fi
 
-    # Split the install command into an array to handle commands with arguments.
 	read -r -a installCmdAndArgs <<< "$installCommand"
+	debug "Split install command into ${#installCmdAndArgs[@]} parts"
 
-    # Attempt to install the package for the missing command.
+	info "Running package manager for: $packageName"
 	if ! "${installCmdAndArgs[@]}" "$packageName"; then
-		echo "ERROR: failed to install package for command: $commandName" >&2
+		error "failed to install package for command: $commandName"
 		return 1
 	fi
 
+	info "Installed command via package manager: $commandName"
 }
 
 # ------------------------------------------------------------------------------
@@ -150,30 +161,32 @@ function require() {
 	local commandName="$1"
 	local yaml_file="${2:-}"
 
+	debug "Validating require arguments for: $commandName"
 	if [[ $# -ne 2 || -z "$commandName" || -z "$yaml_file" ]]; then
-		echo "ERROR: require expects a command name and a YAML file." >&2
+		error "require expects a command name and a YAML file."
 		return 1
 	fi
 
 	if [[ ! -r "$yaml_file" ]]; then
-		echo "ERROR: unable to read YAML file: $yaml_file" >&2
+		error "unable to read YAML file: $yaml_file"
 		return 1
 	fi
 
-    # Verify if the command is already available in PATH
+	info "Checking availability of command: $commandName"
 	if command -v -- "$commandName" >/dev/null 2>&1; then
+		info "Command already available: $commandName"
 		return 0
 	fi
 
-    # If the command is missing, attempt to install it using the provided YAML file
-    install_missing_command "$commandName" "$yaml_file" || return 1
+	debug "Command is missing: $commandName"
+	install_missing_command "$commandName" "$yaml_file" || return 1
 
-    # Verify again if the command is now available after installation
 	if command -v -- "$commandName" >/dev/null 2>&1; then
+		info "Command became available after installation: $commandName"
 		return 0
 	fi
 
-	echo "ERROR: required command not found after installation: $commandName" >&2
+	error "required command not found after installation: $commandName"
 	return 1
 }
 

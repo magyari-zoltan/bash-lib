@@ -110,9 +110,11 @@ ret_val=$?
 copy_stdout_to output
 copy_stderr_to stderr_output
 
+output="$(printf '%s' "$output" | sed -E 's/^[0-9-]{10} [0-9:]{8} - [A-Z]+  - //')"
+
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' for a missing os-release file."
-EXPECT_TO_BE_EQUAL "" "$output" "No stdout output is expected for a missing os-release file."
-EXPECT_TO_BE_EQUAL "ERROR: unable to read os-release file: $missing_os_release" "$stderr_output" "The error message should mention the missing file."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected for a missing os-release file."
+EXPECT_TO_BE_EQUAL "unable to read os-release file: $missing_os_release" "$output" "The error message should mention the missing file."
 
 ENDTEST
 
@@ -131,9 +133,11 @@ ret_val=$?
 copy_stdout_to output
 copy_stderr_to stderr_output
 
+output="$(printf '%s' "$output" | sed -E 's/^[0-9-]{10} [0-9:]{8} - [A-Z]+  - //')"
+
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the file has no ID entry."
-EXPECT_TO_BE_EQUAL "" "$output" "No stdout output is expected when the ID entry is missing."
-EXPECT_TO_BE_EQUAL "ERROR: distro ID not found in $no_id_os_release" "$stderr_output" "The error message should explain the missing ID."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when the ID entry is missing."
+EXPECT_TO_BE_EQUAL "distro ID not found in $no_id_os_release" "$output" "The error message should explain the missing ID."
 
 ENDTEST
 

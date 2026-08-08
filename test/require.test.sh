@@ -59,7 +59,7 @@ function mock_command() {
 	local target="$2"
 
 	cat > "$file" <<EOF
-#!/usr/bin/env bash
+#!$BASH_BIN
 exec "$target" "\$@"
 EOF
 
@@ -71,13 +71,14 @@ CHMOD_BIN="$(command -v chmod)"
 TEE_BIN="$(command -v tee)"
 CAT_BIN="$(command -v cat)"
 SED_BIN="$(command -v sed)"
+DATE_BIN="$(command -v date)"
 DIRNAME_BIN="$(command -v dirname)"
 BASH_BIN="$(command -v bash)"
 MKDIR_BIN="$(command -v mkdir)"
 
 mock_command "$BIN_DIR/bash" "$BASH_BIN"
 cat > "$BIN_DIR/sudo" <<EOF
-#!/usr/bin/env bash
+#!$BASH_BIN
 exec "\$@"
 EOF
 "$CHMOD_BIN" +x "$BIN_DIR/sudo"
@@ -85,6 +86,7 @@ mock_command "$BIN_DIR/tee" "$TEE_BIN"
 mock_command "$BIN_DIR/cat" "$CAT_BIN"
 mock_command "$BIN_DIR/rm" "$RM_BIN"
 mock_command "$BIN_DIR/sed" "$SED_BIN"
+mock_command "$BIN_DIR/date" "$DATE_BIN"
 mock_command "$BIN_DIR/dirname" "$DIRNAME_BIN"
 mock_command "$BIN_DIR/mkdir" "$MKDIR_BIN"
 mock_command "$BIN_DIR/chmod" "$CHMOD_BIN"
@@ -97,7 +99,7 @@ function mock_package_manager() {
 	local file="$1"
 
 	cat > "$file" <<EOF
-#!/usr/bin/env bash
+#!$BASH_BIN
 
 set -euo pipefail
 
@@ -109,7 +111,7 @@ package="\${*: -1}"
 target="\${REQUIRE_TARGET_COMMAND:-\$package}"
 
 cat > "\$INSTALLED_BIN/\$target" <<'EOI'
-#!/usr/bin/env bash
+#!/bin/sh
 exit 0
 EOI
 
@@ -161,26 +163,27 @@ function create_custom_install_script() {
     # require.yaml file.
     custom_script_dir="$TMP_DIR/$distro_name/install"
     script_file="$custom_script_dir/$appName.sh"
+    local scriptHeader="#!$BASH_BIN"
 
     mkdir -p "$custom_script_dir"
 
-	cat > "$script_file" <<'EOF'
-#!/usr/bin/env bash
+	cat > "$script_file" <<EOF
+$scriptHeader
 
 set -euo pipefail
 
-target="${REQUIRE_TARGET_COMMAND:-}"
-if [[ -z "$target" ]]; then
+target="\${REQUIRE_TARGET_COMMAND:-}"
+if [[ -z "\$target" ]]; then
 	exit 1
 fi
 
-cat > "$INSTALLED_BIN/$target" <<'EOI'
-#!/usr/bin/env bash
+cat > "\$INSTALLED_BIN/\$target" <<'EOI'
+#!/bin/sh
 exit 0
 EOI
 
-chmod +x "$INSTALLED_BIN/$target"
-printf '%s %s\n' "${0##*/}" "$*" >> "$LOG_DIR/custom-script.log"
+chmod +x "\$INSTALLED_BIN/\$target"
+printf '%s %s\n' "\${0##*/}" "\$*" >> "\$LOG_DIR/custom-script.log"
 EOF
 
 	chmod +x "$script_file"
@@ -211,6 +214,10 @@ function get_distro_specific_installer() {
 			return 1
 			;;
 	esac
+}
+
+function strip_logger_prefix() {
+	sed -E 's/^[0-9-]{10} [0-9:]{8} - [A-Z]+  - //'
 }
 
 export PATH="$BIN_DIR:$INSTALLED_BIN"
@@ -387,11 +394,14 @@ function distro() {
 # Run require against a distro that is not present in the YAML metadata.
 RUN require "__bash_lib_unsupported_missing_command__" "$RES/require.yaml"
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 # The command should fail with a distro-specific error and no install attempt.
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' for an unsupported distro."
-EXPECT_TO_BE_EQUAL "ERROR: install command not found for distro: fedora" "$stderr_output" "The error message should mention the unsupported distro."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected for an unsupported distro."
+EXPECT_TO_BE_EQUAL "install command not found for distro: fedora" "$output" "The error message should mention the unsupported distro."
 EXPECT_TO_BE_EQUAL "" "$(get_install_log_contents)" "No install should happen when the distro is unsupported."
 
 # Restore the original distro implementation for the remaining tests.
@@ -418,11 +428,14 @@ DESCRIBE "The require command returns 1 when the install command fails."
 # create a fake installed command with the same name as the required command.
 REQUIRE_INSTALL_FAIL=1 RUN require "__bash_lib_failing_missing_command__" "$RES/require.yaml"
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
 REQUIRE_INSTALL_FAIL=0
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when installation fails."
-EXPECT_TO_BE_EQUAL "ERROR: failed to install package for command: __bash_lib_failing_missing_command__" "$stderr_output" "The error message should mention the failed command."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when installation fails."
+EXPECT_TO_BE_EQUAL "failed to install package for command: __bash_lib_failing_missing_command__" "$output" "The error message should mention the failed command."
 
 ENDTEST
 
@@ -435,10 +448,13 @@ DESCRIBE "The require command returns 1 when no argument is provided."
 # arguments are missing.
 RUN require
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when no command name is provided."
-EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain the missing arguments."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when no command name is provided."
+EXPECT_TO_BE_EQUAL "require expects a command name and a YAML file." "$output" "The error message should explain the missing arguments."
 
 ENDTEST
 
@@ -449,10 +465,13 @@ DESCRIBE "The require command returns 1 when the command argument is empty."
 # Run the require command with an empty command name and a valid YAML file.
 RUN require "" "$RES/require.yaml"
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the command argument is empty."
-EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that both arguments are required."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when the command argument is empty."
+EXPECT_TO_BE_EQUAL "require expects a command name and a YAML file." "$output" "The error message should explain that both arguments are required."
 
 ENDTEST
 
@@ -464,10 +483,13 @@ DESCRIBE "The require command returns 1 when the YAML file argument is missing."
 # because the YAML file is required for missing-command installation.
 RUN require bash
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the YAML file argument is missing."
-EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that both arguments are required."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when the YAML file argument is missing."
+EXPECT_TO_BE_EQUAL "require expects a command name and a YAML file." "$output" "The error message should explain that both arguments are required."
 
 ENDTEST
 
@@ -478,10 +500,13 @@ DESCRIBE "The require command returns 1 when the YAML file argument is empty."
 # Run the require command with a valid command name but no YAML file path.
 RUN require bash ""
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the YAML file argument is empty."
-EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that both arguments are required."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when the YAML file argument is empty."
+EXPECT_TO_BE_EQUAL "require expects a command name and a YAML file." "$output" "The error message should explain that both arguments are required."
 
 ENDTEST
 
@@ -492,10 +517,13 @@ DESCRIBE "The require command returns 1 when the YAML file path does not exist."
 # Run the require command with a YAML path that does not exist.
 RUN require bash "$TMP_DIR/missing-require.yaml"
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when the YAML file path does not exist."
-EXPECT_TO_BE_EQUAL "ERROR: unable to read YAML file: $TMP_DIR/missing-require.yaml" "$stderr_output" "The error message should mention the missing YAML file path."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when the YAML file path does not exist."
+EXPECT_TO_BE_EQUAL "unable to read YAML file: $TMP_DIR/missing-require.yaml" "$output" "The error message should mention the missing YAML file path."
 
 ENDTEST
 
@@ -507,10 +535,13 @@ DESCRIBE "The require command returns 1 when too many arguments are provided."
 # fail because it only accepts a command name and a YAML file path.
 RUN require bash "$RES/require.yaml" extra
 ret_val=$?
+copy_stdout_to output
 copy_stderr_to stderr_output
+output="$(printf '%s' "$output" | strip_logger_prefix)"
 
 EXPECT_TO_BE_EQUAL "1" "$ret_val" "The return value should be '1' when too many arguments are provided."
-EXPECT_TO_BE_EQUAL "ERROR: require expects a command name and a YAML file." "$stderr_output" "The error message should explain that only two arguments are allowed."
+EXPECT_TO_BE_EQUAL "" "$stderr_output" "No stderr output is expected when too many arguments are provided."
+EXPECT_TO_BE_EQUAL "require expects a command name and a YAML file." "$output" "The error message should explain that only two arguments are allowed."
 
 ENDTEST
 

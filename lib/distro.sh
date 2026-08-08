@@ -18,6 +18,19 @@ fi
 readonly DISTRO_LOADED=true
 
 # ------------------------------------------------------------------------------
+# Import dependencies
+# ------------------------------------------------------------------------------
+
+# Get current scripts absolute path
+currentFilesPathIndex=$((${#BASH_SOURCE[@]} - 1))
+CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[$currentFilesPathIndex]}")" && pwd)"
+
+# The "lib" folders relative path
+LIB="$CURRENT_SCRIPT_PATH"
+
+source "$CURRENT_SCRIPT_PATH/logger.sh"
+
+# ------------------------------------------------------------------------------
 # Public API: Functions intended for external use
 # ------------------------------------------------------------------------------
 
@@ -27,8 +40,10 @@ function distro() {
 	local key
 	local value
 
+	debug "Reading distro ID from: $os_release_file"
+
 	if [[ ! -r "$os_release_file" ]]; then
-		echo "ERROR: unable to read os-release file: $os_release_file" >&2
+		error "unable to read os-release file: $os_release_file"
 		return 1
 	fi
 
@@ -45,7 +60,7 @@ function distro() {
 		fi
 	done < "$os_release_file"
 
-	echo "ERROR: distro ID not found in $os_release_file" >&2
+	error "distro ID not found in $os_release_file"
 	return 1
 }
 

@@ -36,7 +36,8 @@ readonly YAML_PARSER_LOADED=true
 # ------------------------------------------------------------------------------
 
 # Get current scripts absolute path
-CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+currentFilesPathIndex=$((${#BASH_SOURCE[@]} - 1))
+CURRENT_SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[$currentFilesPathIndex]}")" && pwd)"
 
 # The "lib" folders relative path
 LIB="$CURRENT_SCRIPT_PATH"
