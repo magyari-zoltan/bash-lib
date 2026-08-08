@@ -67,24 +67,28 @@ function trim() {
 
 function yaml_comment() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
 
     if [[ "$line" =~ ^(.*)[[:space:]]*#.*$ ]]; then
         local stripped_line="${BASH_REMATCH[1]}"
         debug "Stripping inline comment: original='$line' stripped='$stripped_line' stack='${keyStackRef[*]}'"
-        parse_line "$stripped_line" ${!keyStackRef} ${!mapRef}
+        parse_line "$stripped_line" "$stackName" "$mapName"
     elif [[ "$line" =~ ^[[:space:]]*#.*$ ]]; then
         debug "Skipping comment-only line: '$line'"
     fi
 }
 
 function key_from_stack() {
-    local -n keyStackRef="$1"
+    local stackName="$1"
+    local -n keyStackRef="$stackName"
     local key="${keyStackRef[0]}"
 
     debug "Building key from stack: ${keyStackRef[*]}"
-    local length=$(stack_size "${!keyStackRef}")
+    local length
+    length=$(stack_size "$stackName")
     for (( i=1; i<length; i++ )); do
         if [[ $(type_of_value "${keyStackRef[i]}") == "number" ]]; then
             key="${key}[${keyStackRef[i]}]"
@@ -97,9 +101,12 @@ function key_from_stack() {
 }
 
 function top_level() {
-    local -n keyStackRef="$1"
-    local -n mapRef="$2"
-    local key=$(key_from_stack "${!keyStackRef}")
+    local stackName="$1"
+    local mapName="$2"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
+    local key
+    key=$(key_from_stack "$stackName")
     local level="${mapRef["${key}:level"]:-0}"
 
     debug "Resolved top level: key='$key' level='$level'"
@@ -112,12 +119,15 @@ function top_level() {
 
 function value() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
 
     debug "Parsing scalar value: line='$line'"
     local val=$(trim "$line")
-    local key=$(key_from_stack "${!keyStackRef}")
+    local key
+    key=$(key_from_stack "$stackName")
 
     local valueType
 
@@ -130,8 +140,10 @@ function value() {
 
 function values() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
 
     debug "Parsing comma-separated values: line='$line' stack='${keyStackRef[*]}'"
     if [[ "$line" =~ ^([^,]+),(.*)$ ]]; then
@@ -139,49 +151,54 @@ function values() {
         local remaining="${BASH_REMATCH[2]}"
         debug "Split values: first='$val' remaining='$remaining'"
 
-        value "$val" ${!keyStackRef} ${!mapRef}
-        local level=$(top_level "${!keyStackRef}" "${!mapRef}")
+        value "$val" "$stackName" "$mapName"
+        local level
+        level=$(top_level "$stackName" "$mapName")
 
-        stack_pop keyStackRef index
+        stack_pop "$stackName" index
         # local array_key=$(key_from_stack "${!keyStackRef}")
-        stack_push keyStackRef $((index + 1))
+        stack_push "$stackName" $((index + 1))
 
         # The level of the new value is the same as the previous one, so we need to set it again
-        local key=$(key_from_stack "${!keyStackRef}")
+        local key
+        key=$(key_from_stack "$stackName")
         debug "Advanced array index: key='$key' index='$((index + 1))' level='$level'"
         mapRef["${key}:type"]="index"
         mapRef["${key}:level"]="${level}"
 
-        parse_line "$remaining" ${!keyStackRef} ${!mapRef}
+        parse_line "$remaining" "$stackName" "$mapName"
     fi
 }
 
 function object() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
     local index=0
 
     debug "Parsing object: line='$line' stack='${keyStackRef[*]}'"
     if [[ "$line" =~ ^([[:space:]]*)([^:]+):[[:space:]]*$ ]]; then
         local name=$(trim "${BASH_REMATCH[2]}")
         local level="${#BASH_REMATCH[1]}"
-        debug "Matched object: name='$name' level='$level' current_top='$(top_level "${!keyStackRef}" "${!mapRef}")'"
+        debug "Matched object: name='$name' level='$level' current_top='$(top_level "$stackName" "$mapName")'"
 
-        if [[ $level -lt $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ $level -lt $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
-            object "$line" ${!keyStackRef} ${!mapRef}
+            stack_pop "$stackName" _
+            object "$line" "$stackName" "$mapName"
             return 0
         fi
 
-        if [[ "$level" == $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
+            stack_pop "$stackName" _
         fi
 
-        stack_push keyStackRef "$name"
-        local key=$(key_from_stack "${!keyStackRef}")
+        stack_push "$stackName" "$name"
+        local key
+        key=$(key_from_stack "$stackName")
         debug "Registered object: key='$key' level='$level'"
         mapRef["${key}:type"]="object"
         mapRef["${key}:level"]="${level}"
@@ -190,39 +207,43 @@ function object() {
 
 function property() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
 
     debug "Parsing property: line='$line' stack='${keyStackRef[*]}'"
     if [[ "$line" =~ ^([[:space:]]*)([^:]+):[[:space:]]*(.+)[[:space:]]*$ ]]; then
         local name="$(trim "${BASH_REMATCH[2]}")"
         local value="$(trim "${BASH_REMATCH[3]}")"
         local level="${#BASH_REMATCH[1]}"
-        debug "Matched property: name='$name' value='$value' level='$level' current_top='$(top_level "${!keyStackRef}" "${!mapRef}")'"
+        debug "Matched property: name='$name' value='$value' level='$level' current_top='$(top_level "$stackName" "$mapName")'"
 
-        if [[ $level -lt $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ $level -lt $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
-            property "$line" ${!keyStackRef} ${!mapRef}
+            stack_pop "$stackName" _
+            property "$line" "$stackName" "$mapName"
             return 0
         fi
 
-        if [[ "$level" == $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
+            stack_pop "$stackName" _
         fi
 
-        stack_push ${!keyStackRef} "${name}"
+        stack_push "$stackName" "${name}"
         debug "Pushed property key: stack='${keyStackRef[*]}'"
-        value "$value" ${!keyStackRef} ${!mapRef}
-        stack_pop ${!keyStackRef} _
+        value "$value" "$stackName" "$mapName"
+        stack_pop "$stackName" _
     fi
 }
 
 function array() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
 
     debug "Parsing array: line='$line' stack='${keyStackRef[*]}'"
     if [[ "$line" =~ ^([[:space:]]*)([^:]+):[[:space:]]*\[(.*)$ ]]; then
@@ -230,53 +251,58 @@ function array() {
         local values="$(trim "${BASH_REMATCH[3]}")"
         local level="${#BASH_REMATCH[1]}"
         local index=0
-        debug "Matched array: name='$name' values='$values' level='$level' current_top='$(top_level "${!keyStackRef}" "${!mapRef}")'"
+        debug "Matched array: name='$name' values='$values' level='$level' current_top='$(top_level "$stackName" "$mapName")'"
 
-        if [[ $level -lt $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ $level -lt $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
-            array "$line" ${!keyStackRef} ${!mapRef}
+            stack_pop "$stackName" _
+            array "$line" "$stackName" "$mapName"
             return 0
         fi
 
-        if [[ "$level" == $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
+            stack_pop "$stackName" _
         fi
 
-        stack_push ${!keyStackRef} "${name}"
-        local key=$(key_from_stack "${!keyStackRef}")
+        stack_push "$stackName" "${name}"
+        local key
+        key=$(key_from_stack "$stackName")
         debug "Registered array container: key='$key' level='$level'"
         mapRef["${key}:type"]="array"
         mapRef["${key}:level"]=${level}
 
-        stack_push ${!keyStackRef} 0
-        local key=$(key_from_stack "${!keyStackRef}")
+        stack_push "$stackName" 0
+        key=$(key_from_stack "$stackName")
         debug "Registered array index: key='$key' level='$level'"
         mapRef["${key}:type"]="index"
         mapRef["${key}:level"]=${level}
 
-        parse_line "$values" ${!keyStackRef} ${!mapRef}
+        parse_line "$values" "$stackName" "$mapName"
     else
         if [[ "$line" =~ ^(.*)\][[:space:]]*$ ]]; then
             local before_bracket="${BASH_REMATCH[1]}"
-            parse_line "$before_bracket" ${!keyStackRef} ${!mapRef}
+            parse_line "$before_bracket" "$stackName" "$mapName"
 
             # Pop the index from the stack
-            stack_pop ${!keyStackRef} index
+            stack_pop "$stackName" index
+            local key
+            key=$(key_from_stack "$stackName")
             local length=$((index + 1))
             mapRef["${key}:length"]=${length}
 
             # Pop the array from the stack
-            stack_pop ${!keyStackRef} _
+            stack_pop "$stackName" _
         fi
     fi
 }
 
 function array_item() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
     local index=0
     local length=1
 
@@ -286,39 +312,41 @@ function array_item() {
         local space_after_hyphen="${BASH_REMATCH[2]}"
         local value="$(trim "${BASH_REMATCH[3]}")"
         local level="${#space_before_hyphen}"
-        debug "Matched array item: value='$value' level='$level' current_top='$(top_level "${!keyStackRef}" "${!mapRef}")'"
+        debug "Matched array item: value='$value' level='$level' current_top='$(top_level "$stackName" "$mapName")'"
 
-        if [[ $level -lt $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ $level -lt $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" _  
-            array_item "$line" ${!keyStackRef} ${!mapRef}
+            stack_pop "$stackName" _
+            array_item "$line" "$stackName" "$mapName"
             return 0
         fi
 
-        if [[ "$level" == $(top_level "${!keyStackRef}" "${!mapRef}") ]]; then
+        if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "${!keyStackRef}" index 
+            stack_pop "$stackName" index
 
             # Calculate the nex index for the next array item
             index=$((index + 1))
 
             # Increase the length of the arrayj
-            local key=$(key_from_stack "${!keyStackRef}")
+            local key
+            key=$(key_from_stack "$stackName")
             length=$((mapRef["${key}:length"] + 1))
         fi
 
-        local key=$(key_from_stack "${!keyStackRef}")
+        local key
+        key=$(key_from_stack "$stackName")
         debug "Registered array container: key='$key' length='$length'"
         mapRef["${key}:type"]="array"
         mapRef["${key}:length"]=${length}
 
-        stack_push ${!keyStackRef} ${index}
-        local key=$(key_from_stack "${!keyStackRef}")
+        stack_push "$stackName" "${index}"
+        key=$(key_from_stack "$stackName")
         debug "Registered array item index: key='$key' level='$level'"
         mapRef["${key}:type"]="index"
         mapRef["${key}:level"]=${level}
 
-        parse_line "${space_before_hyphen} ${space_after_hyphen}$value" ${!keyStackRef} ${!mapRef}
+        parse_line "${space_before_hyphen} ${space_after_hyphen}$value" "$stackName" "$mapName"
     fi
 }
 
@@ -328,8 +356,10 @@ function array_item() {
 
 function parse_line() {
     local line="$1"
-    local -n keyStackRef="$2"
-    local -n mapRef="$3"
+    local stackName="$2"
+    local mapName="$3"
+    local -n keyStackRef="$stackName"
+    local -n mapRef="$mapName"
 
     debug "Parsing line: '$line' stack='${keyStackRef[*]}'"
 
@@ -340,47 +370,47 @@ function parse_line() {
     fi
 
     if [[ "$line" == *"#"* ]]; then
-        yaml_comment "$line" ${!keyStackRef} ${!mapRef}
+        yaml_comment "$line" "$stackName" "$mapName"
         return 0
     fi
 
     # If the line contains a hyphen and something else after it
     if [[ "$line" =~ ^[[:space:]]*-[[:space:]]*[^[:space:]].*$ ]]; then
         debug "Detected array item: '$line'"
-        array_item "$line" ${!keyStackRef} ${!mapRef}
+        array_item "$line" "$stackName" "$mapName"
         return 0
     fi
 
     # If the line contains a colon and only spaces after it is a object
     if [[ "$line" =~ ^[^:]+:[[:space:]]*$ ]]; then
         debug "Detected object: '$line'"
-        object "$line" ${!keyStackRef} ${!mapRef}
+        object "$line" "$stackName" "$mapName"
         return 0
     fi
 
     # If the line contains a colon and opening brancket
     if [[ "$line" =~ ^[^:]+:[[:space:]]*\[.*$ || "$line" =~ ^[^\]]*\][[:space:]]*$ ]]; then
         debug "Detected array: '$line'"
-        array "$line" ${!keyStackRef} ${!mapRef}
+        array "$line" "$stackName" "$mapName"
         return 0
     fi
 
     # If the line contains a colon and a value the colon then it is a property
     if [[ "$line" =~ ^[^:]+:[[:space:]]*.+[[:space:]]*$ ]]; then
         debug "Detected property: '$line'"
-        property "$line" ${!keyStackRef} ${!mapRef}
+        property "$line" "$stackName" "$mapName"
         return 0
     fi
 
     # If the line contains a comma, it indicates multiple values
     if [[ "$line" =~ , ]]; then 
         debug "Detected multiple values: '$line'"
-        values "$line" ${!keyStackRef} ${!mapRef}
+        values "$line" "$stackName" "$mapName"
         return 0
     fi
 
     debug "Treating as scalar value: '$line'"
-    value "$line" ${!keyStackRef} ${!mapRef}
+    value "$line" "$stackName" "$mapName"
 }
 
 # ------------------------------------------------------------------------------
