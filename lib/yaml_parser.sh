@@ -193,7 +193,7 @@ function object() {
 
         if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "$stackName" _
+            stack_is_empty "$stackName" || stack_pop "$stackName" _
         fi
 
         stack_push "$stackName" "$name"
@@ -228,7 +228,7 @@ function property() {
 
         if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "$stackName" _
+            stack_is_empty "$stackName" || stack_pop "$stackName" _
         fi
 
         stack_push "$stackName" "${name}"
@@ -262,7 +262,7 @@ function array() {
 
         if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "$stackName" _
+            stack_is_empty "$stackName" || stack_pop "$stackName" _
         fi
 
         stack_push "$stackName" "${name}"
@@ -323,7 +323,7 @@ function array_item() {
 
         if [[ "$level" == $(top_level "$stackName" "$mapName") ]]; then
             # Pop the last element if the level is the same
-            stack_pop "$stackName" index
+            stack_is_empty "$stackName" || stack_pop "$stackName" index
 
             # Calculate the nex index for the next array item
             index=$((index + 1))
