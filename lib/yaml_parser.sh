@@ -91,9 +91,17 @@ function key_from_stack() {
     length=$(stack_size "$stackName")
     for (( i=0; i<length; i++ )); do
         if [[ $(type_of_value "${keyStackRef[i]}") == "number" ]]; then
-            key="${key}[${keyStackRef[i]}]"
+            if [[ -z "$key" ]]; then
+                key="[${keyStackRef[i]}]"
+            else
+                key="${key}[${keyStackRef[i]}]"
+            fi
         else
-            key="${key}.${keyStackRef[i]}"
+            if [[ -z "$key" ]]; then
+                key="${keyStackRef[i]}"
+            else
+                key="${key}.${keyStackRef[i]}"
+            fi
         fi
     done
 

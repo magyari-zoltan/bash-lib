@@ -38,7 +38,9 @@ trap 'cleanup' EXIT
 
 DESCRIBE "The execution environment reports the expected Linux distribution."
 
-expected_distro_id="${EXPECTED_DISTRO_ID:-}"
+# Prefer the CI-provided expected value, but fall back to the local os-release
+# file so the test can run on a developer machine without extra environment.
+expected_distro_id="${EXPECTED_DISTRO_ID:-$(awk -F= '/^ID=/{gsub(/"/, "", $2); print $2; exit}' /etc/os-release)}"
 
 if [[ -z "$expected_distro_id" ]]; then
 	FAIL "EXPECTED_DISTRO_ID is not set."
