@@ -84,12 +84,12 @@ function yaml_comment() {
 function key_from_stack() {
     local stackName="$1"
     local -n keyStackRef="$stackName"
-    local key="${keyStackRef[0]}"
+    local key=""
 
     debug "Building key from stack: ${keyStackRef[*]}"
     local length
     length=$(stack_size "$stackName")
-    for (( i=1; i<length; i++ )); do
+    for (( i=0; i<length; i++ )); do
         if [[ $(type_of_value "${keyStackRef[i]}") == "number" ]]; then
             key="${key}[${keyStackRef[i]}]"
         else
